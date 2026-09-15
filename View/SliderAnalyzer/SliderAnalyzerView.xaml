@@ -1,0 +1,155 @@
+<UserControl x:Class="StandalonePicturator.View.SliderAnalyzer.SliderAnalyzerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1200">
+    
+    <Grid Background="#1E1E1E" Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Thanh chọn file .osu -->
+        <Border Grid.Row="0" Background="#2A2A2A" Padding="10" CornerRadius="6" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Beatmap Path:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="White" Margin="0,0,10,0"/>
+                <TextBox Grid.Column="1" Text="{Binding OsuPath, UpdateSourceTrigger=PropertyChanged}" 
+                         Background="#FFFFFF" Foreground="#000000" FontWeight="Medium" Padding="6,4"
+                         VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button Grid.Column="2" Content="Browse .osu" Command="{Binding BrowseOsuCommand}" 
+                        Background="#512BD4" Foreground="White" FontWeight="Bold" Padding="14,6"/>
+            </Grid>
+        </Border>
+
+        <!-- Khung chính -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Cột 1: Danh sách Slider -->
+            <Border Grid.Column="0" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="0,0,8,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="SLIDER LIST" FontWeight="Bold" Foreground="#80CBC4" Margin="2,0,0,6"/>
+                    <ListBox ItemsSource="{Binding AllSliders}" SelectedItem="{Binding SelectedSliderItem}"
+                             Background="#FFFFFF" Foreground="#000000" FontFamily="Segoe UI" FontWeight="Medium"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayText}" Padding="4,3"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Cột 2: Thông số & Tọa độ -->
+            <Border Grid.Column="1" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="130"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="SLIDER PROPERTIES" FontWeight="Bold" Foreground="#80CBC4" Margin="2,0,0,4"/>
+                    <TextBox Grid.Row="1" Text="{Binding AnalysisResult}" IsReadOnly="True" 
+                             Background="#FFFFFF" Foreground="#000000" FontWeight="SemiBold"
+                             FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" 
+                             VerticalScrollBarVisibility="Auto" Padding="6" Margin="0,0,0,8"/>
+
+                    <TextBlock Grid.Row="2" Text="CONTROL POINTS" FontWeight="Bold" Foreground="#80CBC4" Margin="2,0,0,4"/>
+                    <ListBox Grid.Row="3" ItemsSource="{Binding ControlPointsList}" 
+                             Background="#FFFFFF" Foreground="#000000" FontWeight="SemiBold"
+                             FontFamily="Consolas" FontSize="11" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                </Grid>
+            </Border>
+
+            <!-- Cột 3: Hiển thị 2 màn hình Visualizer song song -->
+            <Grid Grid.Column="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- KHUNG TRÁI: PLAYFIELD VIEW -->
+                <Border Grid.Column="0" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="0,0,4,0">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <TextBlock Text="🎮 PLAYER VIEW" FontWeight="Bold" Foreground="#80CBC4" VerticalAlignment="Center"/>
+                            <Button Content="Reset View" Click="ResetPlayfieldZoom_Click" Background="#424242" Foreground="White" Padding="6,2" FontSize="10" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <Border Name="PlayfieldContainer" ClipToBounds="True" Background="#0F0F0F"
+                                MouseWheel="Playfield_MouseWheel" MouseLeftButtonDown="Playfield_MouseDown"
+                                MouseLeftButtonUp="Playfield_MouseUp" MouseMove="Playfield_MouseMove">
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Image Source="{Binding PlayfieldBitmap}" Width="512" Height="384" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor">
+                                    <Image.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform x:Name="PlayfieldScale" ScaleX="1" ScaleY="1"/>
+                                            <TranslateTransform x:Name="PlayfieldTranslate" X="0" Y="0"/>
+                                        </TransformGroup>
+                                    </Image.RenderTransform>
+                                </Image>
+                                <TextBlock Text="Playfield bounds 512x384" HorizontalAlignment="Right" VerticalAlignment="Bottom" Foreground="#616161" Margin="6" FontSize="10"/>
+                            </Grid>
+                        </Border>
+                    </DockPanel>
+                </Border>
+
+                <!-- KHUNG PHẢI: MACRO / CREATOR VIEW -->
+                <Border Grid.Column="1" Background="#2A2A2A" CornerRadius="6" Padding="8" Margin="4,0,0,0">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <TextBlock Text="🌌 OVERVIEW" FontWeight="Bold" Foreground="#80CBC4" VerticalAlignment="Center"/>
+                            <Button Content="Reset View" Click="ResetMacroZoom_Click" Background="#424242" Foreground="White" Padding="6,2" FontSize="10" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <Border Name="MacroContainer" ClipToBounds="True" Background="#141414"
+                                MouseWheel="Macro_MouseWheel" MouseLeftButtonDown="Macro_MouseDown"
+                                MouseLeftButtonUp="Macro_MouseUp" MouseMove="Macro_MouseMove">
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Chú ý: Macro View xuất ra ảnh 800x800, nên khung nhìn hiển thị là hình vuông -->
+                                <Image Source="{Binding MacroBitmap}" Width="450" Height="450" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality">
+                                    <Image.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform x:Name="MacroScale" ScaleX="1" ScaleY="1"/>
+                                            <TranslateTransform x:Name="MacroTranslate" X="0" Y="0"/>
+                                        </TransformGroup>
+                                    </Image.RenderTransform>
+                                </Image>
+                                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6">
+                                    <TextBlock Text="Start (green) -> End (red)" Foreground="#757575" FontSize="10" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Green rectangle = osu! screen" Foreground="#757575" FontSize="10" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Full OpenGL bounds" Foreground="#757575" FontSize="10" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Nút Re-Picturate -->
+        <Border Grid.Row="2" Background="#2A2A2A" Padding="10" CornerRadius="6" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="💡 Scroll: zoom | Hold left mouse: pan" VerticalAlignment="Center" Foreground="#9E9E9E" Margin="0,0,25,0" FontStyle="Italic"/>
+                <TextBlock Text="Recreate the selected slider with Slider Picturator:" VerticalAlignment="Center" Foreground="White" Margin="0,0,15,0"/>
+                <Button Content="⚡ Re-Picturate Selected Slider" Command="{Binding GenerateSimilarCommand}" 
+                        Background="#D32F2F" Foreground="White" FontWeight="Bold" Padding="16,8"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

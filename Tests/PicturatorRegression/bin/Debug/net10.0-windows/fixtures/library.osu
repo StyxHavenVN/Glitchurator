@@ -1,0 +1,24 @@
+osu file format v14
+[General]
+AudioFilename:test.mp3
+Mode:0
+[Metadata]
+Title:Library
+Artist:Test
+Creator:Test
+Version:Test
+[Difficulty]
+HPDrainRate:5
+CircleSize:5
+OverallDifficulty:5
+ApproachRate:5
+SliderMultiplier:1.4
+SliderTickRate:1
+[TimingPoints]
+0,500,4,1,0,80,1,0
+0,-50,4,1,0,80,0,0
+[HitObjects]
+100,100,1000,2,0,L|240:100,1,140
+150,150,1500,1,0,0:0:0:0:
+200,200,2000,2,0,L|480:200,2,280
+120,120,11827,2,0,L|260:120,1,140

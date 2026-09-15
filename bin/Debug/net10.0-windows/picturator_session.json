@@ -1,0 +1,60 @@
+{
+  "NativeSliderShading": true,
+  "BallGraphEnabled": true,
+  "BallGraphPoints": [
+    {
+      "Time": 0.0,
+      "Position": 0.0,
+      "Curve": 0,
+      "Curvature": 0.0
+    },
+    {
+      "Time": 0.3626373626373626,
+      "Position": 0.3480973444951948,
+      "Curve": 0,
+      "Curvature": -0.028176815923743322
+    },
+    {
+      "Time": 0.673992673992674,
+      "Position": 0.5613446104635246,
+      "Curve": 0,
+      "Curvature": 0.0
+    },
+    {
+      "Time": 1.0,
+      "Position": 1.0,
+      "Curve": 0,
+      "Curvature": 0.0
+    }
+  ],
+  "BallOffsetX": 0.0,
+  "BallOffsetY": 0.0,
+  "BeatmapPath": "D:\\osu!\\Songs\\jorj1357_-_u_cant_uncall_me_mommy\\jorj1357 - u cant uncall me mommy (StyxHavenVN) [test].osu",
+  "PictureFile": "(CS 5.0, Scale 1.00x, Glitch)",
+  "TimeCode": 38736.0,
+  "Duration": 273.0,
+  "YResolution": 1080.0,
+  "SliderStartX": 191.0,
+  "SliderStartY": 225.0,
+  "ImageStartX": 64.07820332283387,
+  "ImageStartY": 77.13318631547892,
+  "TargetCS": 5.031860970311367,
+  "SliderScale": 0.9985119402518675,
+  "Quality": 15,
+  "HasSliderBall": true,
+  "IsGlitchOn": true,
+  "GlitchAmount": 60.065170166546004,
+  "GlitchFrequency": 90.0,
+  "GlitchThickness": 2,
+  "GlitchSeed": 56301,
+  "BlackOn": false,
+  "BorderOn": false,
+  "RedOn": true,
+  "GreenOn": true,
+  "BlueOn": true,
+  "AlphaOn": true,
+  "BorderColorHex": "#FF000000",
+  "TrackColorPickerColorHex": "#FFF0F8FF",
+  "SelectedSliderLine": "191,225,38736,2,0,L|294:204,1,105",
+  "BallPathSliderLine": ""
+}

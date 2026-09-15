@@ -1,0 +1,51 @@
+{
+  "NativeSliderShading": true,
+  "AutoOsuResolution": false,
+  "BallPathScale": 1.0,
+  "MinimumTumourLength": 12.0,
+  "BallGraphEnabled": false,
+  "BallGraphPoints": [
+    {
+      "Time": 0.0,
+      "Position": 0.0,
+      "Curve": 0,
+      "Curvature": 0.0
+    },
+    {
+      "Time": 1.0,
+      "Position": 1.0,
+      "Curve": 0,
+      "Curvature": 0.0
+    }
+  ],
+  "BallOffsetX": 30.0,
+  "BallOffsetY": 0.0,
+  "BeatmapPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Tests\\PicturatorRegression\\bin\\Debug\\net10.0-windows\\fixtures\\library.osu",
+  "PictureFile": "",
+  "TimeCode": 1000.0,
+  "Duration": 250.0,
+  "YResolution": 1080.0,
+  "SliderStartX": 100.0,
+  "SliderStartY": 100.0,
+  "ImageStartX": 53.0,
+  "ImageStartY": 53.0,
+  "TargetCS": 5.0,
+  "SliderScale": 1.4,
+  "Quality": 25,
+  "HasSliderBall": true,
+  "IsGlitchOn": false,
+  "GlitchAmount": 45.0,
+  "GlitchFrequency": 40.0,
+  "GlitchThickness": 3,
+  "GlitchSeed": 1337,
+  "BlackOn": false,
+  "BorderOn": false,
+  "RedOn": true,
+  "GreenOn": true,
+  "BlueOn": true,
+  "AlphaOn": true,
+  "BorderColorHex": "#FFFFFFFF",
+  "TrackColorPickerColorHex": "#FF24242E",
+  "SelectedSliderLine": "",
+  "BallPathSliderLine": ""
+}

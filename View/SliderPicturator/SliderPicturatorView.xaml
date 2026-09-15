@@ -1,0 +1,123 @@
+<UserControl x:Class="StandalonePicturator.View.SliderPicturator.SliderPicturatorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:StandalonePicturator.View.SliderPicturator">
+    <UserControl.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#DDE6EC"/><Setter Property="Margin" Value="0,3"/></Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}"><Setter Property="Margin" Value="3"/></Style>
+        <Style TargetType="Slider"><Setter Property="Margin" Value="0,4"/></Style>
+    </UserControl.Resources>
+    <Grid Background="#242424" Margin="6">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,10">
+            <TextBlock Text="Slider Picturator" FontSize="24" FontWeight="Bold" Foreground="#80CBC4"/>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Choose map…" Command="{Binding SelectBeatmapCommand}"/>
+                <TextBlock DockPanel.Dock="Left" Text="Beatmap .osu" Width="100" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding BeatmapPath}"/>
+            </DockPanel>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Import images…" Command="{Binding UploadFileCommand}"/>
+                <TextBlock DockPanel.Dock="Left" Text="Image source" Width="100" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding PictureFile, Mode=OneWay}" IsReadOnly="True"/>
+            </DockPanel>
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="330"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="240"/></Grid.ColumnDefinitions>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,10,0">
+                    <TextBlock Text="Start / duration (ms) / vertical resolution"/>
+                    <UniformGrid Columns="3">
+                        <TextBox Text="{Binding TimeCode}" ToolTip="Start time (ms)"/>
+                        <TextBox Text="{Binding Duration}" ToolTip="Duration: 2–60000 ms"/>
+                        <TextBox Text="{Binding YResolution}" ToolTip="Vertical resolution; a multiple of 60 is recommended"/>
+                    </UniformGrid>
+                    <CheckBox Content="Match osu! resolution automatically" IsChecked="{Binding AutoOsuResolution}" Foreground="#80CBC4"/><TextBlock Text="Slider origin X / Y (moves with image)"/>
+                    <UniformGrid Columns="2"><TextBox Text="{Binding SliderStartX, StringFormat=F2}"/><TextBox Text="{Binding SliderStartY, StringFormat=F2}"/></UniformGrid>
+                    <TextBlock Text="Image origin X / Y (negative values allowed)"/>
+                    <UniformGrid Columns="2"><TextBox Text="{Binding ImageStartX, StringFormat=F2}"/><TextBox Text="{Binding ImageStartY, StringFormat=F2}"/></UniformGrid>
+                    <TextBlock Text="{Binding Quality, StringFormat='Scan quality: {0:F0}'}"/>
+                    <Slider Value="{Binding Quality}" Minimum="1" Maximum="101" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                    <TextBlock Text="{Binding SegmentCount, StringFormat='Selected layer scanlines: {0}'}" Foreground="#80CBC4"/>
+                    <Border Background="#1C1C1C" Padding="8" Margin="0,8" CornerRadius="5">
+                        <StackPanel>
+                            <CheckBox Content="Native gradient body and border" IsChecked="{Binding NativeSliderShading}" Foreground="#80CBC4" Margin="0,0,0,5"/>
+                            <TextBlock Text="PICTURATOR SHAPE" FontWeight="Bold" Foreground="#80CBC4"/>
+                            <TextBlock Text="{Binding ImportedSliderInfo}" TextWrapping="Wrap" FontSize="11"/>
+                            <WrapPanel>
+                                <Button Content="Load copied sliders" Command="{Binding ImportShapeCommand}" Padding="8,5"/>
+                                <Button Content="Clear image" Command="{Binding RemoveCommand}" Background="#9F3333" Margin="6,0,0,0" Padding="8,5"/>
+                            </WrapPanel>
+                            <TextBlock Text="{Binding TargetCS, StringFormat='Thickness — CS: {0:F1}'}"/>
+                            <Slider Value="{Binding TargetCS}" Minimum="0" Maximum="10" SmallChange="0.1"/>
+                            <TextBlock Text="{Binding SliderScale, StringFormat='Image scale: {0:F2}×'}"/>
+                            <Slider Value="{Binding SliderScale}" Minimum="0.2" Maximum="3" SmallChange="0.05"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#1C1C1C" Padding="8" Margin="0,0,0,8" CornerRadius="5">
+                        <StackPanel>
+                            <CheckBox Content="Enable glitch" IsChecked="{Binding IsGlitchOn}" Foreground="#00E5FF"/>
+                            <StackPanel IsEnabled="{Binding IsGlitchOn}">
+                                <TextBlock Text="{Binding GlitchAmount, StringFormat='Displacement: {0:F0} px'}"/>
+                                <Slider Value="{Binding GlitchAmount}" Minimum="0" Maximum="150"/>
+                                <TextBlock Text="{Binding GlitchFrequency, StringFormat='Frequency: {0:F0}%'}"/>
+                                <Slider Value="{Binding GlitchFrequency}" Minimum="0" Maximum="90"/>
+                                <TextBlock Text="{Binding GlitchThickness, StringFormat='Spike thickness: {0} px'}"/>
+                                <Slider Value="{Binding GlitchThickness}" Minimum="1" Maximum="8" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                <Button Content="Randomize glitch" Command="{Binding RandomizeGlitchSeedCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#1C1C1C" Padding="8" CornerRadius="5">
+                        <StackPanel>
+                            <CheckBox Content="Sliderball follows shape" IsChecked="{Binding HasSliderBall}" Foreground="#FFD54F"/>
+                            <TextBlock Text="Without a separate path, the ball follows the shape slider." TextWrapping="Wrap" FontSize="11"/>
+                            <Button Content="Import separate path (Ctrl+C)" Command="{Binding ImportBallPathCommand}"/>
+                            <Button Content="Align ball with shape" Click="ResetBall_Click" Margin="0,5,0,0"/>
+                            <TextBlock Text="Independent ball offset X / Y"/>
+                            <UniformGrid Columns="2"><TextBox Text="{Binding BallOffsetX, StringFormat=F2}"/><TextBox Text="{Binding BallOffsetY, StringFormat=F2}"/></UniformGrid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+            <Border Grid.Column="2" Background="#11171E" CornerRadius="6" BorderBrush="#3B535D" BorderThickness="1">
+                <DockPanel>
+                    <Button DockPanel.Dock="Top" Content="GRAPH — sliderball time / position…" Click="OpenGraph_Click" Margin="6" Padding="10,7"/>
+                    <local:PicturatorPreview/>
+                </DockPanel>
+            </Border>
+            <Border Grid.Column="3" Margin="8,0,0,0" Background="#191F27" Padding="8" AllowDrop="True" Drop="Library_Drop">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="SLIDER &amp; IMAGE LIBRARY" Foreground="#80CBC4" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding LibraryItems.Count, StringFormat='Items: {0}'}"/>
+                        <Button Content="Load copied sliders" Command="{Binding ImportShapeCommand}" Margin="0,3"/>
+                        <Button Content="Import clipboard" Click="ImportClipboard_Click" Margin="0,3"/>
+                        <Button Content="Import PNG / images…" Command="{Binding UploadFileCommand}" Margin="0,3"/>
+                        <TextBlock Text="Copy in osu! editor with Ctrl+C, then load here. The copied timestamp locates the slider in the saved .osu file." TextWrapping="Wrap" FontSize="11"/>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Bottom">
+                        <TextBlock Text="Item name"/>
+                        <TextBox Text="{Binding ActiveLibraryItem.Name, UpdateSourceTrigger=LostFocus}"/>
+                        <UniformGrid Columns="2">
+                            <Button Content="Duplicate" Click="DuplicateItem_Click" Margin="2"/>
+                            <Button Content="Remove" Click="RemoveItem_Click" Margin="2"/>
+                        </UniformGrid>
+                        <TextBlock Text="{Binding LibraryStatus}" TextWrapping="Wrap" FontSize="11" Foreground="#FFD54F"/>
+                        <TextBlock Text="Visible layers overlap into one image. Select a layer to move or resize it. Inject combines visible layers using the selected layer's timing and ball path." TextWrapping="Wrap" FontSize="11"/>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding LibraryItems}" SelectedItem="{Binding ActiveLibraryItem, Mode=TwoWay}" Background="#11171E" Foreground="White" Margin="0,6" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate><DataTemplate>
+                            <StackPanel Margin="2,5"><CheckBox Content="Show / Hide" IsChecked="{Binding IsVisible, Mode=TwoWay}" Foreground="#80CBC4"/><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding Kind}" FontSize="10" Foreground="#80CBC4"/></StackPanel>
+                        </DataTemplate></ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Grid>
+        <DockPanel Grid.Row="2" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" x:Name="InjectButton" Content="INJECT SLIDER" Click="Start_Click" Padding="20,9" FontWeight="Bold"/>
+            <Button DockPanel.Dock="Left" Content="Save session" Command="{Binding SaveProgressCommand}" HorizontalAlignment="Left"/>
+            <TextBlock Text="Inject combines visible layers into one slider, using the selected layer's timing and ball path." TextWrapping="Wrap" Margin="12,0" VerticalAlignment="Center"/>
+        </DockPanel>
+    </Grid>
+</UserControl>

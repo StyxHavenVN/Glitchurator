@@ -1,0 +1,118 @@
+<UserControl x:Class="StandalonePicturator.View.HollowSlider.HollowSliderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="920">
+
+    <Grid Background="#242424" Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Thanh tiêu đề & chọn Beatmap chung -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock FontSize="24" FontWeight="Bold" Foreground="#E91E63" Text="Hollow Slider (Negative Space Polygon)"/>
+            <TextBlock Foreground="#B0BEC5" FontSize="11" Margin="0,2,0,6" 
+                       Text="Use the DirectX 9 stencil buffer to create hollow polygons without scanlines."/>
+
+            <Border Background="#1A2A2A" CornerRadius="4" Padding="5" BorderBrush="#00897B" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="90"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0" Content="Beatmap (.osu):" VerticalAlignment="Center" FontWeight="Bold" Foreground="#80CBC4" />
+                    <TextBox Grid.Column="1" Text="{Binding BeatmapPath, UpdateSourceTrigger=PropertyChanged}" Background="White" Foreground="Black" Margin="5,0" Padding="4,2" VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" Content="Choose map…" Command="{Binding Path=SelectBeatmapCommand}" Background="#00897B" Height="24"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <!-- Nội dung chính: Bên trái Tuỳ chỉnh, Bên phải Preview thời gian thực -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- BẢNG ĐIỀU KHIỂN BÊN TRÁI -->
+            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                <!-- Chọn loại đa giác -->
+                <TextBlock Text="1. SHAPE PRESET:" FontWeight="Bold" Foreground="#E91E63" FontSize="12" Margin="0,0,0,4"/>
+                <ComboBox SelectedIndex="{Binding SelectedShapeIndex}" Margin="0,0,0,8" Height="26">
+                    <ComboBoxItem Content="⭕ Hollow circle (Hollow Donut)"/>
+                    <ComboBoxItem Content="⬛ Hollow square (Hollow Square Box)"/>
+                    <ComboBoxItem Content="🔺 Hollow triangle (Hollow Triangle)"/>
+                    <ComboBoxItem Content="⬡ Hollow hexagon (Hollow Hexagon)"/>
+                </ComboBox>
+
+                <!-- Bán kính ngoài & trong -->
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="40"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Outer radius:" VerticalAlignment="Center" Foreground="White"/>
+                    <Slider Grid.Column="1" Value="{Binding OuterRadius}" Minimum="30" Maximum="200" SmallChange="1" LargeChange="10" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" Text="{Binding OuterRadius, StringFormat=\{0:F0\}}" Foreground="#80CBC4" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="40"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Inner radius:" VerticalAlignment="Center" Foreground="White"/>
+                    <Slider Grid.Column="1" Value="{Binding InnerRadius}" Minimum="5" Maximum="{Binding OuterRadius}" SmallChange="1" LargeChange="10" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" Text="{Binding InnerRadius, StringFormat=\{0:F0\}}" Foreground="#E91E63" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="40"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Rotation:" VerticalAlignment="Center" Foreground="White"/>
+                    <Slider Grid.Column="1" Value="{Binding RotationAngle}" Minimum="0" Maximum="360" SmallChange="1" LargeChange="15" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" Text="{Binding RotationAngle, StringFormat=\{0:F0\}°}" Foreground="#FFD54F" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Tọa độ tâm (Center Pos) -->
+                <TextBlock Text="2. CENTER &amp; TIME:" FontWeight="Bold" Foreground="#80CBC4" FontSize="12" Margin="0,10,0,4"/>
+                <Grid Margin="0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Margin="2" Background="White" Foreground="Black" Text="{Binding CenterX}" ToolTip="Center X (playfield 0–512)"/>
+                    <TextBox Grid.Column="1" Margin="2" Background="White" Foreground="Black" Text="{Binding CenterY}" ToolTip="Center Y (playfield 0–384)"/>
+                </Grid>
+
+                <Grid Margin="0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Margin="2" Background="White" Foreground="Black" Text="{Binding TimeCode}" ToolTip="Start time (ms)"/>
+                    <TextBox Grid.Column="1" Margin="2" Background="White" Foreground="Black" Text="{Binding Duration}" ToolTip="Slider duration (ms)"/>
+                </Grid>
+
+                <!-- Nút Inject -->
+                <Button Content="▶ INJECT HOLLOW SLIDER" Click="Inject_Click" 
+                        Background="#E91E63" FontWeight="Bold" Height="42" Margin="0,15,0,0"/>
+            </StackPanel>
+
+            <!-- KHUNG PREVIEW BÊN PHẢI -->
+            <Border Grid.Column="1" Background="#121212" CornerRadius="6" Padding="6">
+                <Image Source="{Binding PreviewImage}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
