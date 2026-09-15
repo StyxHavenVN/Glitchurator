@@ -1,0 +1,51 @@
+## =========================================================================
+## 1. THƯ MỤC BUILD & OUTPUT CỦA .NET / C# (BẮT BUỘC LOẠI BỎ)
+## =========================================================================
+[Bb]in/
+[Oo]bj/
+artifacts/
+[Oo]ut/
+build/
+
+# Tệp sinh tạm khi biên dịch XAML / WPF
+*_wpftmp.csproj
+*_wpftmp.cs
+
+## =========================================================================
+## 2. CẤU HÌNH CÁ NHÂN & IDE (VISUAL STUDIO / VS CODE / RIDER)
+## =========================================================================
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.ide/
+*.swp
+
+## =========================================================================
+## 3. DỮ LIỆU TẠM & SESSION RIÊNG CỦA STANDALONE PICTURATOR
+## =========================================================================
+# File lưu đường dẫn tuyệt đối của máy (như D:\osu!\Songs...) - không đẩy lên Git
+picturator_session.json
+
+# Bản backup tự động khi inject slider vào beatmap
+*.bak
+
+# Ảnh chụp kết quả test hồi quy / fixtures
+Tests/**/fixtures/
+Tests/**/bin/
+Tests/**/obj/
+
+## =========================================================================
+## 4. TỆP HỆ ĐIỀU HÀNH & LOG
+## =========================================================================
+[Tt]humbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.log
+*.tmp
