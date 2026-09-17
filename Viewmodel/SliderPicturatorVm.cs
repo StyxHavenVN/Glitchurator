@@ -11,6 +11,7 @@ using Microsoft.Win32;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using StandalonePicturator.Classes.BeatmapHelper;
+using StandalonePicturator.Classes.BeatmapHelper.Enums;
 using StandalonePicturator.Classes.MathUtil;
 using StandalonePicturator.Classes.Tools.SlideratorStuff;
 using Newtonsoft.Json;
@@ -151,6 +152,7 @@ namespace StandalonePicturator.Viewmodel
                 SaveSession();
             }
         }
+
         // =========================================================================
         // THÔNG SỐ TÙY CHỌN HIỆU ỨNG NHIỄU SLIDER (GLITCH EFFECT)
         // =========================================================================
@@ -316,6 +318,19 @@ namespace StandalonePicturator.Viewmodel
             ? "● Sliderball: ON (follows the path)" 
             : "○ Sliderball: OFF (static picture)";
 
+        // Gộp tất cả các hình dạng layer đang bật vào 1 quỹ đạo slider duy nhất
+        private bool chainAllVisibleBallPaths = false;
+        public bool ChainAllVisibleBallPaths
+        {
+            get => chainAllVisibleBallPaths;
+            set
+            {
+                if (Set(ref chainAllVisibleBallPaths, value)) {
+                    SaveSession();
+                }
+            }
+        }
+
         private HitObject ballPathSlider;
         public HitObject BallPathSlider
         {
@@ -464,7 +479,7 @@ namespace StandalonePicturator.Viewmodel
             });
             SaveProgressCommand = new CommandImplementation(_ => {
                 SaveSession();
-                 MessageBox.Show("Session saved.", "Save session");
+                MessageBox.Show("Session saved.", "Save session");
             });
 
             if (!detached) { LoadSession(); InitializeLibrary(); }
@@ -497,6 +512,7 @@ namespace StandalonePicturator.Viewmodel
             var dialog = new OpenFileDialog { Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp", Multiselect = true, Title = "Import images" };
             if (dialog.ShowDialog() == true) ImportImages(dialog.FileNames);
         }
+
         // THUẬT TOÁN TẠO NHIỄU GLITCH NGUYÊN BẢN (SPURIOUS SCANLINE PROTRUSIONS & SLICE TEARING)
         public static void ApplyGlitch(Bitmap bmp, double amountOsuPx, double frequencyPercent, int thickness, int seed, double resolution = 1080)
         {
@@ -623,13 +639,11 @@ namespace StandalonePicturator.Viewmodel
                 if (rawPath == null || rawPath.Count < 2) rawPath = slider.GetAllCurvePoints();
                 if (rawPath == null || rawPath.Count < 2) return;
 
-                // The raster and ball use the same origin and scale, including trimmed slider paths.
                 var scaledPath = rawPath.Select(p => new Vector2(
                     SliderStartX + (p.X - slider.Pos.X) * SliderScale,
                     SliderStartY + (p.Y - slider.Pos.Y) * SliderScale)).ToList();
                 float baseRadius = (float)Beatmap.GetHitObjectRadius(TargetCS);
                 
-                // Bù thêm lề khi bật Glitch để các tia không bị cắt cụt mép ảnh
                 double glitchMargin = IsGlitchOn ? GlitchAmount + 20.0 : 0.0;
                 double margin = baseRadius + 15.0 + glitchMargin;
 
@@ -666,7 +680,6 @@ namespace StandalonePicturator.Viewmodel
                     }
                 }
 
-                // Updating mask padding must not translate the slider itself.
                 Set(ref imageStartX, sMinX, nameof(ImageStartX));
                 Set(ref imageStartY, sMinY, nameof(ImageStartY));
                 SetPictureMask(maskBmp);
@@ -756,14 +769,54 @@ namespace StandalonePicturator.Viewmodel
                 if (!Clipboard.ContainsText()) throw new InvalidOperationException("Select a slider in osu! editor and press Ctrl+C first.");
                 var map = File.Exists(BeatmapPath) ? new BeatmapEditor(BeatmapPath).Beatmap : null;
                 var paths = StandalonePicturator.Classes.EditorSliderSelection.Resolve(Clipboard.GetText(), map);
-                if (paths.Count != 1) throw new InvalidOperationException("Copy exactly one slider for a separate ball path.");
-                BallPathSlider = paths[0];
-                BallPathSliderLine = paths[0].GetLine();
+                if (paths == null || paths.Count == 0) throw new InvalidOperationException("No valid sliders found in clipboard.");
+
+                if (paths.Count == 1)
+                {
+                    BallPathSlider = paths[0];
+                    BallPathSliderLine = paths[0].GetLine();
+                }
+                else
+                {
+                    // Gộp tất cả sliders được chọn thành 1 quỹ đạo liên tục duy nhất
+                    var combined = new List<Vector2>();
+                    foreach (var slider in paths)
+                    {
+                        var calc = slider.GetSliderPath().CalculatedPath;
+                        if (calc == null || calc.Count < 2) calc = slider.GetAllCurvePoints();
+                        if (calc == null || calc.Count < 2) continue;
+
+                        var exp = new List<Vector2>(calc);
+                        for (int r = 1; r < Math.Max(1, slider.Repeat); r++)
+                        {
+                            var span = (r % 2 == 1) ? calc.AsEnumerable().Reverse() : calc;
+                            exp.AddRange(span.Skip(1));
+                        }
+                        combined.AddRange(exp);
+                    }
+
+                    var compound = paths[0].DeepCopy();
+                    compound.IsCircle = false;
+                    compound.IsSlider = true;
+                    compound.Repeat = 1;
+                    compound.SliderType = PathType.Linear;
+                    compound.SetAllCurvePoints(combined);
+                    compound.PixelLength = 0;
+                    for (int i = 1; i < combined.Count; i++) 
+                        compound.PixelLength += (combined[i] - combined[i - 1]).Length;
+
+                    BallPathSlider = compound;
+                    BallPathSliderLine = compound.GetLine();
+                }
+
                 HasSliderBall = true;
                 SaveSession();
-                LibraryStatus = "Separate ball path imported from the editor selection.";
+                LibraryStatus = paths.Count == 1 
+                    ? "Separate ball path imported from the editor selection." 
+                    : $"Combined {paths.Count} sliders into 1 unified ball path.";
             } catch (Exception ex) { LibraryStatus = ex.Message; }
         }
+
         public async void RegeneratePreview()
         {
             previewTokenSource?.Cancel();
@@ -777,7 +830,6 @@ namespace StandalonePicturator.Viewmodel
             int snapshotQuality = Math.Clamp(Quality, 1, 101);
             double nativeRadius = NativeSliderShading ? Beatmap.GetHitObjectRadius(TargetCS) * (YResolution - 16) / 480 : 0;
             try {
-                // Debounce resizing. Only the newest result may update the UI.
                 await Task.Delay(100, ct);
                 var result = await Task.Run(() => SliderPicturator.Recolor(
                     snapshot, Color.White, Color.White, Color.Black, null,
@@ -807,6 +859,7 @@ namespace StandalonePicturator.Viewmodel
                 });
             }
         }
+
         private static System.Windows.Media.Color ParseMediaColor(string hex)
         {
             if (string.IsNullOrWhiteSpace(hex)) return System.Windows.Media.Colors.White;
@@ -830,43 +883,45 @@ namespace StandalonePicturator.Viewmodel
         }
 
         private SessionData CaptureSessionData() => new SessionData {
-                    NativeSliderShading = this.NativeSliderShading,
-                    AutoOsuResolution = AutoOsuResolution,
-                    BallPathScale = BallPathScale,
-                    MinimumTumourLength = MinimumTumourLength,
-                    BallGraphEnabled = this.BallGraphEnabled,
-                    BallGraphPoints = this.BallGraphPoints.ToList(),
-                    BallOffsetX = this.BallOffsetX,
-                    BallOffsetY = this.BallOffsetY,
-                    BeatmapPath = this.BeatmapPath,
-                    PictureFile = this.PictureFile,
-                    TimeCode = this.TimeCode,
-                    Duration = this.Duration,
-                    YResolution = this.YResolution,
-                    SliderStartX = this.SliderStartX,
-                    SliderStartY = this.SliderStartY,
-                    ImageStartX = this.ImageStartX,
-                    ImageStartY = this.ImageStartY,
-                    TargetCS = this.TargetCS,
-                    SliderScale = this.SliderScale,
-                    Quality = this.Quality,
-                    HasSliderBall = this.HasSliderBall,
-                    IsGlitchOn = this.IsGlitchOn,
-                    GlitchAmount = this.GlitchAmount,
-                    GlitchFrequency = this.GlitchFrequency,
-                    GlitchThickness = this.GlitchThickness,
-                    GlitchSeed = this.GlitchSeed,
-                    BlackOn = this.BlackOn,
-                    BorderOn = this.BorderOn,
-                    RedOn = this.RedOn,
-                    GreenOn = this.GreenOn,
-                    BlueOn = this.BlueOn,
-                    AlphaOn = this.AlphaOn,
-                    BorderColorHex = this.BorderColor.ToString(),
-                    TrackColorPickerColorHex = this.TrackColorPickerColor.ToString(),
-                    SelectedSliderLine = this.SelectedSliderLine,
-                    BallPathSliderLine = this.BallPathSliderLine
-                };
+            NativeSliderShading = this.NativeSliderShading,
+            AutoOsuResolution = AutoOsuResolution,
+            BallPathScale = BallPathScale,
+            MinimumTumourLength = MinimumTumourLength,
+            BallGraphEnabled = this.BallGraphEnabled,
+            BallGraphPoints = this.BallGraphPoints.ToList(),
+            BallOffsetX = this.BallOffsetX,
+            BallOffsetY = this.BallOffsetY,
+            BeatmapPath = this.BeatmapPath,
+            PictureFile = this.PictureFile,
+            TimeCode = this.TimeCode,
+            Duration = this.Duration,
+            YResolution = this.YResolution,
+            SliderStartX = this.SliderStartX,
+            SliderStartY = this.SliderStartY,
+            ImageStartX = this.ImageStartX,
+            ImageStartY = this.ImageStartY,
+            TargetCS = this.TargetCS,
+            SliderScale = this.SliderScale,
+            Quality = this.Quality,
+            HasSliderBall = this.HasSliderBall,
+            ChainAllVisibleBallPaths = this.ChainAllVisibleBallPaths,
+            BallSwitchMilliseconds = this.BallSwitchMilliseconds,
+            IsGlitchOn = this.IsGlitchOn,
+            GlitchAmount = this.GlitchAmount,
+            GlitchFrequency = this.GlitchFrequency,
+            GlitchThickness = this.GlitchThickness,
+            GlitchSeed = this.GlitchSeed,
+            BlackOn = this.BlackOn,
+            BorderOn = this.BorderOn,
+            RedOn = this.RedOn,
+            GreenOn = this.GreenOn,
+            BlueOn = this.BlueOn,
+            AlphaOn = this.AlphaOn,
+            BorderColorHex = this.BorderColor.ToString(),
+            TrackColorPickerColorHex = this.TrackColorPickerColor.ToString(),
+            SelectedSliderLine = this.SelectedSliderLine,
+            BallPathSliderLine = this.BallPathSliderLine
+        };
 
         public void SaveSession()
         {
@@ -876,6 +931,7 @@ namespace StandalonePicturator.Viewmodel
                 SaveLibrary();
             } catch { }
         }
+
         public void LoadSession()
         {
             try {
@@ -927,6 +983,9 @@ namespace StandalonePicturator.Viewmodel
                 this.sliderScale = double.IsFinite(data.SliderScale) && data.SliderScale > 0 ? Math.Clamp(data.SliderScale, 0.2, 3) : 1.0;
                 this.quality = data.Quality > 0 ? data.Quality : 25;
                 this.hasSliderBall = data.HasSliderBall;
+                this.chainAllVisibleBallPaths = data.ChainAllVisibleBallPaths;
+                ballSwitchMilliseconds = Math.Clamp(data.BallSwitchMilliseconds, 1, 32);
+                RaisePropertyChanged(nameof(BallSwitchMilliseconds));
                 this.isGlitchOn = data.IsGlitchOn;
                 this.glitchAmount = Math.Clamp(data.GlitchAmount, 0, 150);
                 this.glitchFrequency = Math.Clamp(data.GlitchFrequency, 0, 90);
@@ -972,6 +1031,7 @@ namespace StandalonePicturator.Viewmodel
                 RaisePropertyChanged(nameof(BorderColor));
                 RaisePropertyChanged(nameof(TrackColorPickerColor));
                 RaisePropertyChanged(nameof(HasSliderBall));
+                RaisePropertyChanged(nameof(ChainAllVisibleBallPaths));
                 RaisePropertyChanged(nameof(SliderBallStatusText));
 
                 if (!string.IsNullOrEmpty(SelectedSliderLine)) {
@@ -990,7 +1050,12 @@ namespace StandalonePicturator.Viewmodel
                     try { ballPathSlider = new HitObject(BallPathSliderLine); } catch { }
                 }
             } catch { }
-            finally { loadingSession = false; RaisePropertyChanged(nameof(SelectedSlider)); RaisePropertyChanged(nameof(BallPathSlider)); RaisePropertyChanged(nameof(PictureFile)); }
+            finally { 
+                loadingSession = false; 
+                RaisePropertyChanged(nameof(SelectedSlider)); 
+                RaisePropertyChanged(nameof(BallPathSlider)); 
+                RaisePropertyChanged(nameof(PictureFile)); 
+            }
         }
 
         private class SessionData
@@ -1016,6 +1081,8 @@ namespace StandalonePicturator.Viewmodel
             public double SliderScale { get; set; }
             public int Quality { get; set; }
             public bool HasSliderBall { get; set; }
+            public bool ChainAllVisibleBallPaths { get; set; }
+            public int BallSwitchMilliseconds { get; set; } = 4;
             public bool IsGlitchOn { get; set; }
             public double GlitchAmount { get; set; } = 45;
             public double GlitchFrequency { get; set; } = 40;

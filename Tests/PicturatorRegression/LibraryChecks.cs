@@ -76,6 +76,29 @@ SliderTickRate:1
             Check(points.Count > 2, "Composite shader field generates an export path");
         }
         vm.Duration = 250;
+        vm.ChainAllVisibleBallPaths = true; vm.BallSwitchMilliseconds = 4; vm.Duration = 40;
+        using (var multiplex = PicturatorExportRequest.Capture(vm)) {
+            Check(multiplex.MultiplexMotion.Count == 2, "Two independent ball routes");
+            Check(multiplex.MultiplexMotion.RouteAt(0) == 0 && multiplex.MultiplexMotion.RouteAt(.1) == 1 && multiplex.MultiplexMotion.RouteAt(.2) == 0, "Round-robin switches every four milliseconds");
+            var anchors = PicturatorExporter.GeneratePath(multiplex, 5);
+            var exported = multiplex.BallSlider.DeepCopy();
+            exported.SetAllCurvePoints(anchors);
+            exported.PixelLength = 0;
+            for (int i = 1; i < anchors.Count; i++) exported.PixelLength += (anchors[i] - anchors[i-1]).Length;
+            var exportedPath = exported.GetSliderPath();
+            double worst = 0;
+            for (int ms = 1; ms < 40; ms++) worst = Math.Max(worst,
+                (exportedPath.SliderballPositionAt(ms, 40) - multiplex.MultiplexMotion.PositionAt(ms / 40d)).Length);
+            Console.WriteLine($"Multiplex export: {anchors.Count} anchors; maximum integer-ms position error {worst:F3}px");
+            Check(worst < 2, "Exported ball follows alternating targets including switch boundaries");
+            second.IsVisible = false;
+            Check(multiplex.MultiplexMotion.Count == 2 && vm.CreateMultiplexMotion().Count == 1, "Snapshot remains independent of visibility edits");
+            second.IsVisible = true;
+        }
+        vm.DuplicateLibraryItem();
+        Check(vm.CreateMultiplexMotion().Count == 3, "Three or more ball routes supported");
+        vm.RemoveLibraryItem(); vm.ActiveLibraryItem = first;
+        vm.ChainAllVisibleBallPaths = false; vm.Duration = 250;
         vm.SliderScale = 1.4; vm.BallOffsetX = 17; first.Name = "My slider";
         vm.ActiveLibraryItem = second;
         Check(vm.SliderScale == 1 && vm.BallOffsetX == 0, "Independent transforms");
@@ -95,11 +118,13 @@ SliderTickRate:1
         vm.BallOffsetX = 30;
         vm.ActiveLibraryItem = first;
         Check(vm.BallOffsetX == 17, "Duplicate edits isolated");
+        vm.ChainAllVisibleBallPaths = true; vm.BallSwitchMilliseconds = 7;
         vm.SaveSession();
         vm.LibraryItems[2].IsVisible = false;
         var restored = new SliderPicturatorVm();
         Check(restored.LibraryItems.Count == 4 && restored.ActiveLibraryItem.Name == "My slider" && restored.BallOffsetX == 17, "Library persistence");
         Check(!restored.LibraryItems[2].IsVisible && restored.VisibleLayers.Count() == 3, "Visibility persists");
+        Check(restored.ChainAllVisibleBallPaths && restored.BallSwitchMilliseconds == 7, "Multiplex settings persist");
         var view = new SliderPicturatorView { DataContext = restored, Width = 1380, Height = 760 };
         var frame = new System.Windows.Threading.DispatcherFrame();
         var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };

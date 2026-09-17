@@ -62,3 +62,13 @@ dotnet run --project Tests/PicturatorRegression/PicturatorRegression.csproj --no
 ```
 
 Library tests cover timestamp selection, repeat duration, independent edits, PNG import, duplication, persistence, removal and WPF rendering. The automated tests do not send Ctrl+C to a live osu! editor.
+
+## Multi-ball illusion
+
+Enable **Sliderball follows shape** and **Multi-ball illusion (visible paths)** on the selected layer. Every visible layer with an enabled ball and a source slider or separate path contributes one route. Hidden layers and images without paths do not contribute a ball route.
+
+The export still contains one slider and one real sliderball. It alternates between routes at **Switch path every … ms** (1–32 ms; default 4 ms). Each route advances continuously over the selected output duration, retaining its source repeats, placement, scale, offsets and its own graph. Source start times are aligned to the selected output start time; original durations are normalized to the output duration so all routes run together. With N routes, each route is revisited every N × switch interval milliseconds.
+
+The cyan dotted circles in preview are guide positions, not additional real balls. The gold ball shows the sampled alternating position. The output targets osu! Stable's integer-millisecond sliderball sampling used by the existing generator. Renderer/FPS sampling can alias the switches, produce flicker or skip a route; an interval of 1 ms is not necessarily smoother. Tune the interval in osu! at the playback speed and FPS you intend to use. The tool does not guarantee simultaneous visible balls or emulate display persistence.
+
+The former Chain all visible layer paths setting now enables this alternation instead of concatenating the routes. With the mode disabled, the selected layer supplies the ordinary ball path. Segment estimation and Inject use the same captured motion. Automated tests cover route alternation, two/three routes, visibility, persistence and integer-ms positions in the project's Stable sampling model; live appearance in osu! has not been verified.

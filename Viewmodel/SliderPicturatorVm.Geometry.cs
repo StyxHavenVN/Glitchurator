@@ -133,13 +133,24 @@ public partial class SliderPicturatorVm
     public HitObject CreateBallSlider()
     {
         if (!HasSliderBall) return null;
+
+        if (ChainAllVisibleBallPaths) {
+            var first = VisibleLayers.Where(l => l.HasSliderBall).Select(l => l.CreateSingleBallSlider()).FirstOrDefault(s => s != null);
+            if (first != null) { first.Time = TimeCode; first.TemporalLength = Duration; return first; }
+        }
+        return CreateSingleBallSlider();
+    }
+
+    public HitObject CreateSingleBallSlider()
+    {
+        if (!HasSliderBall) return null;
         var source = BallPathSlider ?? SelectedSlider;
         if (source == null) return null;
         var points = source.GetSliderPath().CalculatedPath.Select(p => new Vector2(
             SliderStartX + BallOffsetX + (p.X - source.Pos.X) * SliderScale * BallPathScale,
             SliderStartY + BallOffsetY + (p.Y - source.Pos.Y) * SliderScale * BallPathScale)).ToList();
         if (points.Count < 2) return null;
-        // Expand source repeats into one linear path; the exported picturator always has Repeat = 1.
+
         var repeated = new List<Vector2>(points);
         for (int repeat = 1; repeat < (BallGraphEnabled ? 1 : Math.Max(1, source.Repeat)); repeat++) {
             var span = repeat % 2 == 1 ? points.AsEnumerable().Reverse() : points;

@@ -83,12 +83,14 @@ public sealed class PicturatorPreview : UserControl
         UpdateProgress();
     }
 
-    private void Changed(object sender, PropertyChangedEventArgs e)
+private void Changed(object sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(SliderPicturatorVm.SliderStartX) or nameof(SliderPicturatorVm.SliderStartY)
             or nameof(SliderPicturatorVm.SliderScale) or nameof(SliderPicturatorVm.BallOffsetX)
             or nameof(SliderPicturatorVm.BallPathScale) or nameof(SliderPicturatorVm.BallOffsetY) or nameof(SliderPicturatorVm.BallPathSlider)
-            or nameof(SliderPicturatorVm.BallGraphEnabled) or nameof(SliderPicturatorVm.SelectedSlider) or nameof(SliderPicturatorVm.HasSliderBall)) surface.RefreshPath();
+            or nameof(SliderPicturatorVm.BallGraphEnabled) or nameof(SliderPicturatorVm.SelectedSlider) or nameof(SliderPicturatorVm.HasSliderBall)
+            or nameof(SliderPicturatorVm.ChainAllVisibleBallPaths) or nameof(SliderPicturatorVm.BallSwitchMilliseconds)
+            or nameof(SliderPicturatorVm.VisibleLayers)) surface.RefreshPath();
         surface.InvalidateVisual();
         UpdateProgress();
     }
@@ -113,6 +115,7 @@ public sealed class PicturatorPreview : UserControl
         public double Progress { get; set; }
         private SliderPath? path;
         private Geometry route;
+        private StandalonePicturator.Classes.MultiplexBallMotion multiplex;
         private Rect world = new(-128, -96, 768, 576);
         private Point previous;
         private Point resizeOrigin;
@@ -144,7 +147,8 @@ public sealed class PicturatorPreview : UserControl
 
         public void RefreshPath()
         {
-            var slider = Model?.CreateBallSlider();
+            multiplex = Model?.CreateMultiplexMotion();
+            var slider = Model?.CreateSingleBallSlider();
             path = slider?.GetSliderPath();
             route = null;
             if (path.HasValue) {
@@ -210,9 +214,16 @@ public sealed class PicturatorPreview : UserControl
                 dc.DrawGeometry(null, new Pen(Brushes.Gold, 1.5 / Zoom) { DashStyle = DashStyles.Dash }, route);
                 dc.Pop();
             }
-            var pos = path?.PositionAt(Model.EvaluateBallProgress(Progress));
+            var pos = multiplex?.PositionAt(Progress) ?? path?.PositionAt(Model.EvaluateBallProgress(Progress));
             var ball = ToScreen(pos.HasValue ? new Point(pos.Value.X, pos.Value.Y) : new Point(Model.SliderStartX, Model.SliderStartY));
             double radius = Model.GetPreviewBallRadius() * Zoom;
+            if (multiplex != null && multiplex.Count > 1) {
+                for (int i = 0; i < multiplex.Count; i++) {
+                    var ghost = multiplex.PositionOnRoute(i, Progress);
+                    dc.DrawEllipse(null, new Pen(Brushes.Cyan, 1) { DashStyle = DashStyles.Dot }, ToScreen(new Point(ghost.X, ghost.Y)), radius, radius);
+                }
+                DrawText(dc, $"{multiplex.Count} paths • cyan = guide positions • gold = real ball", new Point(8, ActualHeight - 46), Brushes.Cyan);
+            }
             ballCenter = ball; ballScreenRadius = radius;
             dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, 255, 210, 65)), new Pen(Brushes.Gold, 2), ball, radius, radius);
             dc.DrawEllipse(Brushes.White, null, ball, 3, 3);

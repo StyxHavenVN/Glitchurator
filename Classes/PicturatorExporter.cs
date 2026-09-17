@@ -27,6 +27,7 @@ public sealed class PicturatorExportRequest : IDisposable
     public double NativeRadiusPixels { get; init; }
     public NativeGlitchSnapshot NativeGlitch { get; private set; }
     public double[,] CompositeField { get; private set; }
+    public MultiplexBallMotion MultiplexMotion { get; init; }
 
     public static PicturatorExportRequest Capture(SliderPicturatorVm vm)
     {
@@ -37,6 +38,7 @@ public sealed class PicturatorExportRequest : IDisposable
         var layers = vm.VisibleLayers.ToArray();
         if (layers.Length == 0) throw new InvalidOperationException("Show at least one layer before exporting.");
         var request = new PicturatorExportRequest {
+            MultiplexMotion = vm.CreateMultiplexMotion(),
             MinimumTumourLength = vm.MinimumTumourLength,
             NativeGlitch = vm.CaptureNativeGlitch(),
             NativeRadiusPixels = vm.NativeSliderShading ? Beatmap.GetHitObjectRadius(vm.TargetCS) * (vm.YResolution - 16) / 480 : 0,
@@ -95,7 +97,8 @@ public static class PicturatorExporter
             request.Image, Color.White, Color.White, Color.Black,
             circleSize, request.Start, request.ImageStart,
             ball, request.Resolution, request.Viewport, true, true, true, true, true, true, request.Quality,
-            request.MotionGraph == null ? null : t => BallMotionGraph.Evaluate(request.MotionGraph, t), request.NativeRadiusPixels, request.CompositeField ?? request.NativeGlitch?.Build(request.NativeRadiusPixels, request.Quality), request.MinimumTumourLength);
+            request.MotionGraph == null ? null : t => BallMotionGraph.Evaluate(request.MotionGraph, t), request.NativeRadiusPixels, request.CompositeField ?? request.NativeGlitch?.Build(request.NativeRadiusPixels, request.Quality), request.MinimumTumourLength,
+            request.MultiplexMotion == null ? null : request.MultiplexMotion.PositionAt);
         if (points == null || points.Count < 2)
             throw new InvalidOperationException("Cannot generate a slider path from this image.");
         // Use exactly the integer anchors that will be written to the .osu file.

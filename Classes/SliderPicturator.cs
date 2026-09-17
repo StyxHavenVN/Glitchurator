@@ -174,7 +174,7 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
 
         public static (List<Vector2>, double) Picturate(Bitmap img, Color sliderColor, Color sliderBorder, Color backgroundColor, double circleSize, Vector2 startPos,
             Vector2 startPosPic, HitObject slider = null, double resY = 1080, long gpu = 16384, bool blackOff = false, bool borderOff = false, bool opaqueOff = false,
-            bool r = true, bool g = true, bool b = true, int quality = 101, Func<double, double> ballProgress = null, double nativeRadiusPixels = 0, double[,] nativeFieldOverride = null, double minimumTumourLength = 12) {
+            bool r = true, bool g = true, bool b = true, int quality = 101, Func<double, double> ballProgress = null, double nativeRadiusPixels = 0, double[,] nativeFieldOverride = null, double minimumTumourLength = 12, Func<double, Vector2> ballPosition = null) {
             Color innerColor = Color.FromArgb(Alpha,
                 (byte) Math.Min(255, sliderColor.R * (1 + 0.5 * LightenAmount) + 255 * LightenAmount),
                 (byte) Math.Min(255, sliderColor.G * (1 + 0.5 * LightenAmount) + 255 * LightenAmount),
@@ -276,7 +276,7 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
                 var sourcePath = slider.GetSliderPath();
                 sbPositions = new Vector2[duration + 1];
                 for (int i = 0; i < duration + 1; i++) {
-                    sbPositions[i] = sourcePath.PositionAt(ballProgress?.Invoke((double)i / duration) ?? (double)i / duration);
+                    sbPositions[i] = ballPosition?.Invoke((double)i / duration) ?? sourcePath.PositionAt(ballProgress?.Invoke((double)i / duration) ?? (double)i / duration);
                 }
 
                 // Before rounding sbPositions, calculate starting coordinate for each ms' final segment to make the sliderball rotate appropriately
