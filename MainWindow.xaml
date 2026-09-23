@@ -9,7 +9,7 @@
         xmlns:extreme="clr-namespace:StandalonePicturator.View.ExtremeSlider"
 
         mc:Ignorable="d"
-        Title="Slider Picturator &amp; Analyzer — Styx (StyxHavenVN)" Height="820" Width="1380" MinWidth="1100" MinHeight="650"
+        Title="Glitchurator — Styx (StyxHavenVN)" Height="820" Width="1380" MinWidth="1100" MinHeight="650"
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E">
     
@@ -67,5 +67,6 @@
         <TextBlock Grid.Row="2" Text="Mapping Tools extension for Slider Picturator &amp; Sliderball • Styx (StyxHavenVN) • Copying and sharing welcome." Foreground="#A0ADB8" FontSize="11" HorizontalAlignment="Right" Margin="8,6,8,0"/>
     </Grid>
 </Window>
+
 
 

@@ -1,4 +1,4 @@
-# Developer guide
+# Glitchurator — Developer guide
 
 This is Styx (StyxHavenVN)'s Mapping Tools extension for Slider Picturator and Sliderball.
 Source comments explain the main entry points and why important steps exist.
@@ -16,12 +16,12 @@ Do not move user data back beside the executable. Build output folders change be
 Legacy build data is archived before cleanup; do not delete the archive without checking its contents.
 
 ## Build and package (Windows x64)
-dotnet publish StandalonePicturator.csproj -c Release -r win-x64 --self-contained true -p:UseAppHost=true -o artifacts/installer-payload
+dotnet publish Glitchurator.csproj -c Release -r win-x64 --self-contained true -p:UseAppHost=true -o artifacts/glitchurator-payload
 tools\InnoSetup\ISCC.exe packaging\installer.iss
 
 The installer contains the .NET runtime and application dependencies; no separate runtime install is needed.
 It installs per-user, adds shortcuts and an uninstaller. Uninstall leaves user-created session data alone.
-Final installer: artifacts/setup/StyxSliderPicturator-Setup.exe
+Final installer: artifacts/setup/Glitchurator-Setup.exe
 The installer is not digitally signed.
 
 ## Checks
@@ -30,4 +30,5 @@ dotnet run --project Tests/PicturatorRegression/PicturatorRegression.csproj -- -
 dotnet run --project Tests/PicturatorRegression/PicturatorRegression.csproj -- --storage-only
 
 For tests which create application models, set STYX_PICTURATOR_DATA to a temporary folder first.
+
 

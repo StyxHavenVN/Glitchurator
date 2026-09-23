@@ -5,5 +5,5 @@
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../../StandalonePicturator.csproj"/></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../Glitchurator.csproj"/></ItemGroup>
 </Project>

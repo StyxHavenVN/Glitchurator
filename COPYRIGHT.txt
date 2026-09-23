@@ -1,4 +1,4 @@
-Slider Picturator & Sliderball — Mapping Tools extension
+Glitchurator — Mapping Tools extension
 Extended by Styx (StyxHavenVN).
 
 This application is an extended version of Mapping Tools functionality
@@ -12,3 +12,4 @@ Mapping Tools and other third-party code, libraries, and assets remain
 attributed to their respective authors and subject to their own licenses.
 This permission does not replace or override those licenses.
 This extension does not imply endorsement by the Mapping Tools authors.
+

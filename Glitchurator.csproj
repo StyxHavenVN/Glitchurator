@@ -3,9 +3,11 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseAppHost>true</UseAppHost>
+    <AssemblyName>Glitchurator</AssemblyName>
+    <RootNamespace>StandalonePicturator</RootNamespace>
     <Authors>Styx (StyxHavenVN)</Authors>
     <Company>Styx (StyxHavenVN)</Company>
-    <Product>Slider Picturator &amp; Analyzer</Product>
+    <Product>Glitchurator</Product>
     <Copyright>Mapping Tools extension by Styx (StyxHavenVN). Copying and sharing permitted; third-party licenses apply.</Copyright>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>disable</Nullable>
@@ -26,5 +28,6 @@
   </ItemGroup>
 
 </Project>
+
 
 
