@@ -7,7 +7,7 @@ namespace StandalonePicturator.Classes;
 /// <summary>Converts a silhouette to radial samples of osu!'s native slider shader.</summary>
 public static class NativeSliderMask
 {
-    public static unsafe double[,] Build(Bitmap mask, double radiusPixels, int quality)
+    public static unsafe double[,] Build(Bitmap mask, double radiusPixels, int quality, bool quantize = true)
     {
         if (!double.IsFinite(radiusPixels) || radiusPixels <= 0) throw new ArgumentOutOfRangeException(nameof(radiusPixels));
         int w = mask.Width, h = mask.Height;
@@ -44,7 +44,7 @@ public static class NativeSliderMask
             double d = distance[x + 1, y + 1];
             if (d == 0) { result[x, y] = 1.2; continue; }
             double radial = Math.Clamp(1 - (Math.Sqrt(d) - .5) / radiusPixels, 0, 1);
-            result[x, y] = Math.Round(radial * quality) / quality;
+            result[x, y] = quantize ? Math.Round(radial * quality) / quality : radial;
         }
         return result;
     }
@@ -82,3 +82,4 @@ public static class NativeSliderMask
         return Color.FromArgb(205, shade, shade + 3, shade + 12);
     }
 }
+

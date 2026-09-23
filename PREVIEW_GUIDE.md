@@ -72,3 +72,21 @@ The export still contains one slider and one real sliderball. It alternates betw
 The cyan dotted circles in preview are guide positions, not additional real balls. The gold ball shows the sampled alternating position. The output targets osu! Stable's integer-millisecond sliderball sampling used by the existing generator. Renderer/FPS sampling can alias the switches, produce flicker or skip a route; an interval of 1 ms is not necessarily smoother. Tune the interval in osu! at the playback speed and FPS you intend to use. The tool does not guarantee simultaneous visible balls or emulate display persistence.
 
 The former Chain all visible layer paths setting now enables this alternation instead of concatenating the routes. With the mode disabled, the selected layer supplies the ordinary ball path. Segment estimation and Inject use the same captured motion. Automated tests cover route alternation, two/three routes, visibility, persistence and integer-ms positions in the project's Stable sampling model; live appearance in osu! has not been verified.
+
+## Sliderball tab and shared beatmap
+
+The main window now shows Slider Picturator, Sliderball and Slider Analyzer. Tick Art and Giant & Matrix are hidden from navigation; their source and saved settings remain available.
+
+The **Shared beatmap .osu** field applies to all visible tabs. Choosing a map in Analyzer also updates Picturator and Sliderball. Sliderball shares the path library, transforms, graph and visibility with Picturator.
+
+**Export hidden-body slider** uses an empty shader sample instead of generating the image scanlines. The giant bounding path is retained for the existing osu! Stable renderer technique. Preview suppresses the body and shows motion guides. Verify body suppression in the actual osu! renderer; native head, tail and follow-circle sprites may remain depending on skin.
+
+Sliderball accepts switch intervals from **0.1 to 32 ms**. Below 1 ms, export adds fractional-time samples; this is experimental and is not a guarantee of submillisecond game updates. Smaller intervals add anchors and can increase lag or alias against frame sampling. Picturator's image mode retains a minimum effective interval of 1 ms. The generator rejects more than 200,000 motion samples instead of allocating unbounded output.
+
+For the automated 40 ms, two-route fixture, the picture export used 17,438 anchors; hidden-body export used 1,074 at 1 ms and 10,783 at 0.1 ms. These are fixture counts, not FPS measurements. Sampling-model checks, serialized export and two-way shared-map tests run with:
+
+```powershell
+dotnet run --project Tests/PicturatorRegression/PicturatorRegression.csproj --no-restore -p:UseAppHost=false -- --ball-only
+```
+
+This focused mode does not run the separate legacy-glitch regression.

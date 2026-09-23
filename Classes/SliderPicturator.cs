@@ -124,10 +124,15 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
                     int columnStartOffset = 0;
                     if (0 <= columnStartCoordinate + leftToRight && columnStartCoordinate + leftToRight < imgWidth) {
                         gradientDist = pixDist[columnStartCoordinate + leftToRight, i] - pixDist[columnStartCoordinate, i];
+                        // Native radial samples must use constant-distance runs. The legacy
+                        // gradient fit mixes traversal sign and shader radius and creates wedges.
+                        if (nativeField != null && Math.Abs(gradientDist) > 0.0000001) {
+                            gradientDist = 0;
+                        } else
                         columnStartOffset += leftToRight;
                         while (0 <= columnStartCoordinate + columnStartOffset + leftToRight &&
                                columnStartCoordinate + columnStartOffset + leftToRight < imgWidth &&
-                               Math.Abs(pixDist[columnStartCoordinate + columnStartOffset + leftToRight, i] - pixDist[columnStartCoordinate + columnStartOffset, i] - gradientDist) <= 0.001) {
+                               Math.Abs(pixDist[columnStartCoordinate + columnStartOffset + leftToRight, i] - pixDist[columnStartCoordinate + columnStartOffset, i] - gradientDist) <= (nativeField != null ? 0.0000001 : 0.001)) {
                             columnStartOffset += leftToRight;
                         }
                     }
@@ -144,7 +149,7 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
                 captureField?.Invoke(pixDist); return (ret, numSegments);
             }
 
-            int duration = (int) Math.Floor(slider.TemporalLength);
+            int duration = (int)Math.Floor(slider.TemporalLength);
 
             // We make these assumptions to overestimate segment count. GPU probably cancels out
             const double circleSize = 10;
@@ -174,7 +179,7 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
 
         public static (List<Vector2>, double) Picturate(Bitmap img, Color sliderColor, Color sliderBorder, Color backgroundColor, double circleSize, Vector2 startPos,
             Vector2 startPosPic, HitObject slider = null, double resY = 1080, long gpu = 16384, bool blackOff = false, bool borderOff = false, bool opaqueOff = false,
-            bool r = true, bool g = true, bool b = true, int quality = 101, Func<double, double> ballProgress = null, double nativeRadiusPixels = 0, double[,] nativeFieldOverride = null, double minimumTumourLength = 12, Func<double, Vector2> ballPosition = null) {
+            bool r = true, bool g = true, bool b = true, int quality = 101, Func<double, double> ballProgress = null, double nativeRadiusPixels = 0, double[,] nativeFieldOverride = null, double minimumTumourLength = 12, Func<double, Vector2> ballPosition = null, double sampleInterval = 1) {
             Color innerColor = Color.FromArgb(Alpha,
                 (byte) Math.Min(255, sliderColor.R * (1 + 0.5 * LightenAmount) + 255 * LightenAmount),
                 (byte) Math.Min(255, sliderColor.G * (1 + 0.5 * LightenAmount) + 255 * LightenAmount),
@@ -271,7 +276,9 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
             Vector2[] msLastSegStart = null;
             int duration = 0;
             if (slider is { IsSlider: true }) {
-                duration = (int) Math.Floor(slider.TemporalLength);
+                if (!double.IsFinite(sampleInterval) || sampleInterval < .1) throw new ArgumentOutOfRangeException(nameof(sampleInterval));
+                duration = (int)Math.Ceiling(slider.TemporalLength / sampleInterval);
+                if (duration > 200000) throw new InvalidOperationException("Too many motion samples. Increase the switch interval or shorten the duration (limit: 200,000 samples).");
                 if (duration < 2) throw new ArgumentOutOfRangeException(nameof(slider), "Moving sliders require at least 2 ms.");
                 var sourcePath = slider.GetSliderPath();
                 sbPositions = new Vector2[duration + 1];
@@ -355,11 +362,16 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
                     gradientDist = 0;
                     if (0 <= columnStartCoordinate + leftToRight && columnStartCoordinate + leftToRight < imgWidth) {
                         gradientDist = pixDist[columnStartCoordinate + leftToRight, i] - pixDist[columnStartCoordinate, i];
+                        // Native radial samples must use constant-distance runs. The legacy
+                        // gradient fit mixes traversal sign and shader radius and creates wedges.
+                        if (nativeField != null && Math.Abs(gradientDist) > 0.0000001) {
+                            gradientDist = 0;
+                        } else
                         columnStartOffset += leftToRight;
                         while (0 <= columnStartCoordinate + columnStartOffset + leftToRight && columnStartCoordinate + columnStartOffset + leftToRight < imgWidth
                                                                                             && Math.Abs(pixDist[columnStartCoordinate + columnStartOffset + leftToRight, i] -
                                                                                                         pixDist[columnStartCoordinate + columnStartOffset, i] - gradientDist) <=
-                                                                                            0.001) {
+                                                                                            (nativeField != null ? 0.0000001 : 0.001)) {
                             columnStartOffset += leftToRight;
                         }
                     }
@@ -516,3 +528,4 @@ namespace StandalonePicturator.Classes.Tools.SlideratorStuff {
         }
     }
 }
+

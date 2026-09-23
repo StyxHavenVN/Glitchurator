@@ -12,12 +12,12 @@ namespace StandalonePicturator.Viewmodel;
 
 public partial class SliderPicturatorVm
 {
-    // Keep the uncut silhouette so glitch does not introduce new native shader borders.
     private bool autoOsuResolution = true;
     public bool AutoOsuResolution {
         get => autoOsuResolution;
         set { if (Set(ref autoOsuResolution, value)) { if (value) SyncOsuResolution(); SaveSession(); } }
     }
+
     public void SyncOsuResolution()
     {
         if (!AutoOsuResolution) return;
@@ -30,6 +30,7 @@ public partial class SliderPicturatorVm
         get => ballPathScale;
         set { if (double.IsFinite(value) && Set(ref ballPathScale, Math.Clamp(value, .1, 5))) SaveSession(); }
     }
+
     public void ResetBallPlacement()
     {
         BallPathSlider = null;
@@ -37,22 +38,40 @@ public partial class SliderPicturatorVm
         HasSliderBall = true;
         SyncOsuResolution();
     }
+
     private Bitmap cleanGlitchSource;
 
     private void SetPictureMask(Bitmap mask)
     {
-        Bitmap clean = IsGlitchOn ? (Bitmap)mask.Clone() : null;
+        Bitmap clean = IsGlitchOn || layerEffects.Layered || layerEffects.Cuts.Count > 0 ? (Bitmap)mask.Clone() : null;
         try {
-            if (IsGlitchOn) ApplyGlitch(mask, GlitchAmount, GlitchFrequency, GlitchThickness, GlitchSeed, YResolution);
+            // Khi bật LayeredGlitch: chạy thuật toán glitch có cấu trúc (không random)
+            if (layerEffects.Layered)
+            {
+                layerEffects.ApplyMask(mask, Beatmap.GetHitObjectRadius(TargetCS) * (YResolution - 16) / 480,
+                    true, GlitchAmount, GlitchFrequency, GlitchSeed, (YResolution - 16) / 480, GlitchThickness);
+            }
+            // Khi chỉ bật Enable glitch thường: chạy thuật toán glitch gốc ngẫu nhiên
+            else if (IsGlitchOn)
+            {
+                ApplyGlitch(mask, GlitchAmount, GlitchFrequency, GlitchThickness, GlitchSeed, YResolution, GlitchAngle);
+            }
+
+            if (!layerEffects.Layered && layerEffects.Cuts.Count > 0)
+            {
+                layerEffects.ApplyMask(mask, Beatmap.GetHitObjectRadius(TargetCS) * (YResolution - 16) / 480,
+                    false, 0, 0, 0, (YResolution - 16) / 480, 1);
+            }
+
             Bm = mask;
             cleanGlitchSource = clean;
         } catch { clean?.Dispose(); throw; }
     }
 
     public StandalonePicturator.Classes.NativeGlitchSnapshot CaptureNativeGlitch() =>
-        NativeSliderShading && IsGlitchOn && cleanGlitchSource != null
+        NativeSliderShading && cleanGlitchSource != null
             ? new StandalonePicturator.Classes.NativeGlitchSnapshot(cleanGlitchSource,
-                GlitchAmount, GlitchFrequency, GlitchThickness, GlitchSeed, YResolution)
+                GlitchAmount, GlitchFrequency, GlitchThickness, GlitchSeed, YResolution, layerEffects, IsGlitchOn, GlitchAngle)
             : null;
 
     private bool nativeSliderShading = true;
@@ -60,10 +79,10 @@ public partial class SliderPicturatorVm
         get => nativeSliderShading;
         set { if (Set(ref nativeSliderShading, value)) { RegeneratePreview(); SaveSession(); } }
     }
+
     private bool loadingSession;
     private double ballOffsetX;
     private double ballOffsetY;
-
     public double BallOffsetX {
         get => ballOffsetX;
         set { if (double.IsFinite(value) && Set(ref ballOffsetX, value)) SaveSession(); }
@@ -73,7 +92,6 @@ public partial class SliderPicturatorVm
         set { if (double.IsFinite(value) && Set(ref ballOffsetY, value)) SaveSession(); }
     }
 
-    // Move both origins in one transaction, so changing either position keeps alignment.
     private void SetPlacement(double x, double y, bool sliderOrigin)
     {
         if (!double.IsFinite(x) || !double.IsFinite(y)) return;
@@ -107,7 +125,6 @@ public partial class SliderPicturatorVm
         RegeneratePreview();
     }
 
-    // This affects only the WPF preview. Export still scans the original white-on-black mask.
     private static unsafe void ClearPreviewBackground(Bitmap preview, Bitmap mask)
     {
         var rectangle = new System.Drawing.Rectangle(0, 0, mask.Width, mask.Height);
@@ -130,10 +147,10 @@ public partial class SliderPicturatorVm
             mask.UnlockBits(source);
         }
     }
+
     public HitObject CreateBallSlider()
     {
         if (!HasSliderBall) return null;
-
         if (ChainAllVisibleBallPaths) {
             var first = VisibleLayers.Where(l => l.HasSliderBall).Select(l => l.CreateSingleBallSlider()).FirstOrDefault(s => s != null);
             if (first != null) { first.Time = TimeCode; first.TemporalLength = Duration; return first; }
@@ -150,7 +167,6 @@ public partial class SliderPicturatorVm
             SliderStartX + BallOffsetX + (p.X - source.Pos.X) * SliderScale * BallPathScale,
             SliderStartY + BallOffsetY + (p.Y - source.Pos.Y) * SliderScale * BallPathScale)).ToList();
         if (points.Count < 2) return null;
-
         var repeated = new List<Vector2>(points);
         for (int repeat = 1; repeat < (BallGraphEnabled ? 1 : Math.Max(1, source.Repeat)); repeat++) {
             var span = repeat % 2 == 1 ? points.AsEnumerable().Reverse() : points;
@@ -173,7 +189,6 @@ public partial class SliderPicturatorVm
 
     private string previewRadiusMap;
     private double? previewMapCs;
-
     public double GetPreviewBallRadius()
     {
         if (previewRadiusMap != BeatmapPath) {
@@ -186,14 +201,13 @@ public partial class SliderPicturatorVm
                 } catch { }
             }
         }
-        // TargetCS controls the drawn mask's thickness. Native ball size comes from the map.
         return Beatmap.GetHitObjectRadius(previewMapCs ?? TargetCS);
     }
+
     [JsonIgnore]
     public System.Windows.Rect PreviewImageBounds {
         get {
             double factor = (YResolution - 16.0) / 480.0;
-            // Match Picturate's rounding and editor-to-gameplay sample origin.
             double x = -104 + Math.Round((Math.Round(ImageStartX) + 104) * factor) / factor;
             double y = -52 + Math.Round((Math.Round(ImageStartY) + 52) * factor) / factor;
             return new System.Windows.Rect(x, y, (Bm?.Width ?? 0) / factor, (Bm?.Height ?? 0) / factor);

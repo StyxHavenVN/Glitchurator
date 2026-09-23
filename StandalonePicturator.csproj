@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <UseAppHost>true</UseAppHost>
+    <Authors>Styx (StyxHavenVN)</Authors>
+    <Company>Styx (StyxHavenVN)</Company>
+    <Product>Slider Picturator &amp; Analyzer</Product>
+    <Copyright>Mapping Tools extension by Styx (StyxHavenVN). Copying and sharing permitted; third-party licenses apply.</Copyright>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -13,10 +18,13 @@
     <PackageReference Include="Extended.Wpf.Toolkit" Version="5.1.2" />
     <PackageReference Include="MaterialDesignThemes" Version="5.3.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <None Update="COPYRIGHT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Remove="*_wpftmp.csproj" />
     <Compile Remove="*_wpftmp.cs" />
-    <Compile Remove="Tests/**/*.cs" />
+    <Compile Remove="Tests/**/*.cs;tools/**/*.cs;artifacts/**/*.cs" />
     <Page Remove="Tests/**/*.xaml" />
   </ItemGroup>
 
 </Project>
+
+

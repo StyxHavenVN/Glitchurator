@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="StandalonePicturator.View.SliderPicturator.SliderPicturatorView"
+<UserControl x:Class="StandalonePicturator.View.SliderPicturator.SliderPicturatorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:StandalonePicturator.View.SliderPicturator">
@@ -56,15 +56,38 @@
                     </Border>
                     <Border Background="#1C1C1C" Padding="8" Margin="0,0,0,8" CornerRadius="5">
                         <StackPanel>
+                            <!-- 1. ENABLE GLITCH THƯỜNG (RANDOM GỐC) -->
                             <CheckBox Content="Enable glitch" IsChecked="{Binding IsGlitchOn}" Foreground="#00E5FF"/>
-                            <StackPanel IsEnabled="{Binding IsGlitchOn}">
+
+                            <!-- 2. CÁC THÔNG SỐ GLITCH CHUNG (DÙNG CHO CẢ 2 CHẾ ĐỘ) -->
+                            <StackPanel IsEnabled="{Binding IsAnyGlitchEnabled}">
+                                <TextBlock Text="Rotate layered glitch"/>
+                                <ComboBox ItemsSource="{Binding GlitchRotationTargets}" SelectedItem="{Binding GlitchRotationTarget}" IsEnabled="{Binding LayeredGlitch}" Margin="0,4,0,8"/>
+                                <TextBlock Text="{Binding GlitchAngle, StringFormat='Direction: {0:F0}°'}"/>
+                                <Slider Value="{Binding GlitchAngle}" Minimum="-180" Maximum="180" SmallChange="1" LargeChange="15"/>
                                 <TextBlock Text="{Binding GlitchAmount, StringFormat='Displacement: {0:F0} px'}"/>
                                 <Slider Value="{Binding GlitchAmount}" Minimum="0" Maximum="150"/>
-                                <TextBlock Text="{Binding GlitchFrequency, StringFormat='Frequency: {0:F0}%'}"/>
+                                <TextBlock Text="{Binding GlitchFrequency, StringFormat='Overall density: {0:F0}%'}"/>
                                 <Slider Value="{Binding GlitchFrequency}" Minimum="0" Maximum="90"/>
                                 <TextBlock Text="{Binding GlitchThickness, StringFormat='Spike thickness: {0} px'}"/>
                                 <Slider Value="{Binding GlitchThickness}" Minimum="1" Maximum="8" IsSnapToTickEnabled="True" TickFrequency="1"/>
-                                <Button Content="Randomize glitch" Command="{Binding RandomizeGlitchSeedCommand}"/>
+                                <Button Content="Randomize glitch" Command="{Binding RandomizeGlitchSeedCommand}" Margin="0,4,0,6"/>
+                            </StackPanel>
+
+                            <!-- 3. LAYERED SCANLINE GLITCH (CẤU TRÚC ĐỀU ĐẶN & TÙY CHỈNH TẦNG LỚP) -->
+                            <CheckBox Content="Layered scanline glitch" IsChecked="{Binding LayeredGlitch}" Foreground="#80CBC4" Margin="0,6,0,2"/>
+                            <StackPanel IsEnabled="{Binding LayeredGlitch}" Margin="10,0,0,0">
+                                <CheckBox Content="Random rows (off = evenly aligned)" IsChecked="{Binding RandomGlitchRows}" Foreground="#80CBC4"/>
+                                <TextBlock Text="{Binding GlitchSpacing, StringFormat='Row spacing: {0:F1} osu!px'}"/>
+                                <Slider Value="{Binding GlitchSpacing}" Minimum="1" Maximum="30"/>
+                                <TextBlock Text="{Binding GlitchTiers, StringFormat='Tiers: {0}'}"/>
+                                <Slider Value="{Binding GlitchTiers}" Minimum="2" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                                <TextBlock Text="{Binding GlitchOuterDensity, StringFormat='Outer density: {0:F0}%'}"/>
+                                <Slider Value="{Binding GlitchOuterDensity}" Minimum="0" Maximum="100"/>
+                                <TextBlock Text="{Binding GlitchMiddleDensity, StringFormat='Middle density: {0:F0}%'}"/>
+                                <Slider Value="{Binding GlitchMiddleDensity}" Minimum="0" Maximum="100"/>
+                                <TextBlock Text="{Binding GlitchSolidCore, StringFormat='Solid inner width: {0:F0}%'}"/>
+                                <Slider Value="{Binding GlitchSolidCore}" Minimum="0" Maximum="95"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -125,3 +148,4 @@
         </DockPanel>
     </Grid>
 </UserControl>
+

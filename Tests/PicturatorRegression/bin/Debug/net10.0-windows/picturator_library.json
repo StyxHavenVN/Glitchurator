@@ -1,4 +1,19 @@
 {
-  "Items": [],
-  "ActiveId": null
+  "Items": [
+    {
+      "Id": "6c1441d962bc4e8f97b2a1676b19c942",
+      "Name": "Slider • 00:01.000",
+      "Kind": "Slider",
+      "IsVisible": true,
+      "State": "{\"Effects\":{\"Layered\":false,\"Random\":false,\"Angle\":0.0,\"Spacing\":3.0,\"Tiers\":3,\"OuterDensity\":22.0,\"MiddleDensity\":60.0,\"Core\":45.0,\"Cuts\":[]},\"NativeSliderShading\":true,\"AutoOsuResolution\":false,\"BallPathScale\":1.0,\"MinimumTumourLength\":12.0,\"BallGraphEnabled\":false,\"BallGraphPoints\":[{\"Time\":0.0,\"Position\":0.0,\"Curve\":0,\"Curvature\":0.0},{\"Time\":1.0,\"Position\":1.0,\"Curve\":0,\"Curvature\":0.0}],\"BallOffsetX\":0.0,\"BallOffsetY\":0.0,\"BeatmapPath\":\"E:\\\\MyProject\\\\SliderPicturator\\\\StandalonePicturator\\\\Tests\\\\PicturatorRegression\\\\bin\\\\Debug\\\\net10.0-windows\\\\fixtures\\\\shared-map.osu\",\"PictureFile\":\"(CS 5.0, Scale 1.00x)\",\"TimeCode\":1000.0,\"Duration\":250.0,\"YResolution\":1080.0,\"SliderStartX\":100.0,\"SliderStartY\":100.0,\"ImageStartX\":53.0,\"ImageStartY\":53.0,\"TargetCS\":5.0,\"SliderScale\":1.0,\"Quality\":25,\"HasSliderBall\":true,\"ChainAllVisibleBallPaths\":false,\"BallSwitchMilliseconds\":4.0,\"IsGlitchOn\":false,\"GlitchAmount\":45.0,\"GlitchFrequency\":40.0,\"GlitchThickness\":3,\"GlitchSeed\":1337,\"BlackOn\":false,\"BorderOn\":false,\"RedOn\":true,\"GreenOn\":true,\"BlueOn\":true,\"AlphaOn\":true,\"BorderColorHex\":\"#FFFFFFFF\",\"TrackColorPickerColorHex\":\"#FF24242E\",\"SelectedSliderLine\":\"100,100,1000,2,0,L|240:100,1,140\",\"BallPathSliderLine\":\"\"}"
+    },
+    {
+      "Id": "b6385d6b2a894bc39e8e3dd9deef6a82",
+      "Name": "Slider • 00:02.000",
+      "Kind": "Slider",
+      "IsVisible": true,
+      "State": "{\"Effects\":{\"Layered\":false,\"Random\":false,\"Angle\":0.0,\"Spacing\":3.0,\"Tiers\":3,\"OuterDensity\":22.0,\"MiddleDensity\":60.0,\"Core\":45.0,\"Cuts\":[]},\"NativeSliderShading\":true,\"AutoOsuResolution\":false,\"BallPathScale\":1.0,\"MinimumTumourLength\":12.0,\"BallGraphEnabled\":false,\"BallGraphPoints\":[{\"Time\":0.0,\"Position\":0.0,\"Curve\":0,\"Curvature\":0.0},{\"Time\":1.0,\"Position\":1.0,\"Curve\":0,\"Curvature\":0.0}],\"BallOffsetX\":0.0,\"BallOffsetY\":0.0,\"BeatmapPath\":\"E:\\\\MyProject\\\\SliderPicturator\\\\StandalonePicturator\\\\Tests\\\\PicturatorRegression\\\\bin\\\\Debug\\\\net10.0-windows\\\\fixtures\\\\shared-map.osu\",\"PictureFile\":\"(CS 5.0, Scale 1.00x)\",\"TimeCode\":2000.0,\"Duration\":20.0,\"YResolution\":1080.0,\"SliderStartX\":200.0,\"SliderStartY\":200.0,\"ImageStartX\":153.0,\"ImageStartY\":153.0,\"TargetCS\":5.0,\"SliderScale\":1.0,\"Quality\":25,\"HasSliderBall\":true,\"ChainAllVisibleBallPaths\":true,\"BallSwitchMilliseconds\":0.1,\"IsGlitchOn\":false,\"GlitchAmount\":45.0,\"GlitchFrequency\":40.0,\"GlitchThickness\":3,\"GlitchSeed\":1337,\"BlackOn\":false,\"BorderOn\":false,\"RedOn\":true,\"GreenOn\":true,\"BlueOn\":true,\"AlphaOn\":true,\"BorderColorHex\":\"#FFFFFFFF\",\"TrackColorPickerColorHex\":\"#FF24242E\",\"SelectedSliderLine\":\"200,200,2000,2,0,L|480:200,2,280\",\"BallPathSliderLine\":\"\"}"
+    }
+  ],
+  "ActiveId": "b6385d6b2a894bc39e8e3dd9deef6a82"
 }

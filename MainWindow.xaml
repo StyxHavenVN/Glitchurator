@@ -9,7 +9,7 @@
         xmlns:extreme="clr-namespace:StandalonePicturator.View.ExtremeSlider"
 
         mc:Ignorable="d"
-        Title="Slider Picturator &amp; Analyzer" Height="820" Width="1380" MinWidth="1100" MinHeight="650"
+        Title="Slider Picturator &amp; Analyzer — Styx (StyxHavenVN)" Height="820" Width="1380" MinWidth="1100" MinHeight="650"
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E">
     
@@ -44,20 +44,28 @@
     </Window.Resources>
 
     <Grid Margin="8">
-        <TabControl Background="#1E1E1E" BorderThickness="0">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <DockPanel Margin="4,0,4,8">
+            <Button DockPanel.Dock="Right" Content="Choose map…" Command="{Binding SelectBeatmapCommand}"/>
+            <TextBlock Text="Shared beatmap .osu" Foreground="White" VerticalAlignment="Center" Margin="4,0,12,0"/>
+            <TextBox Text="{Binding BeatmapPath, UpdateSourceTrigger=LostFocus}"/>
+        </DockPanel>
+        <TabControl Grid.Row="1" Background="#1E1E1E" BorderThickness="0">
             <!-- Tab 1: Công cụ vẽ ảnh Picturator -->
             <TabItem Header="Slider Picturator">
-                <views:SliderPicturatorView />
+                <views:SliderPicturatorView x:Name="Picturator" />
             </TabItem>
             
             <!-- Tab 2: Công cụ phân tích và tái tạo -->
-            <TabItem Header="Tick Art"><tick:TickArtView /></TabItem>
-            <TabItem Header="Giant &amp; Matrix Slider"><extreme:ExtremeSliderView /></TabItem>
+            <TabItem Header="Sliderball"><views:SliderballView /></TabItem>
             <TabItem Header="Slider Analyzer &amp; Re-Picturator">
-                <analyzer:SliderAnalyzerView />
+                <analyzer:SliderAnalyzerView x:Name="Analyzer" />
             </TabItem>
 
 
         </TabControl>
+        <TextBlock Grid.Row="2" Text="Mapping Tools extension for Slider Picturator &amp; Sliderball • Styx (StyxHavenVN) • Copying and sharing welcome." Foreground="#A0ADB8" FontSize="11" HorizontalAlignment="Right" Margin="8,6,8,0"/>
     </Grid>
 </Window>
+
+

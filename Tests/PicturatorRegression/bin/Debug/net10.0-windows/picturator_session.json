@@ -1,9 +1,20 @@
 {
+  "Effects": {
+    "Layered": false,
+    "Random": false,
+    "Angle": 0.0,
+    "Spacing": 3.0,
+    "Tiers": 3,
+    "OuterDensity": 22.0,
+    "MiddleDensity": 60.0,
+    "Core": 45.0,
+    "Cuts": []
+  },
   "NativeSliderShading": true,
   "AutoOsuResolution": false,
   "BallPathScale": 1.0,
   "MinimumTumourLength": 12.0,
-  "BallGraphEnabled": true,
+  "BallGraphEnabled": false,
   "BallGraphPoints": [
     {
       "Time": 0.0,
@@ -12,35 +23,29 @@
       "Curvature": 0.0
     },
     {
-      "Time": 0.4,
-      "Position": 0.8,
-      "Curve": 0,
-      "Curvature": 0.0
-    },
-    {
       "Time": 1.0,
-      "Position": 0.2,
+      "Position": 1.0,
       "Curve": 0,
       "Curvature": 0.0
     }
   ],
   "BallOffsetX": 0.0,
   "BallOffsetY": 0.0,
-  "BeatmapPath": null,
-  "PictureFile": "(CS 4.1, Scale 1.00x)",
-  "TimeCode": 0.0,
-  "Duration": 40.0,
-  "YResolution": 128.0,
-  "SliderStartX": 100.0,
-  "SliderStartY": 100.0,
-  "ImageStartX": 48.95000076293945,
-  "ImageStartY": 48.95000076293945,
-  "TargetCS": 4.1,
+  "BeatmapPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Tests\\PicturatorRegression\\bin\\Debug\\net10.0-windows\\fixtures\\shared-map.osu",
+  "PictureFile": "(CS 5.0, Scale 1.00x)",
+  "TimeCode": 2000.0,
+  "Duration": 20.0,
+  "YResolution": 1080.0,
+  "SliderStartX": 200.0,
+  "SliderStartY": 200.0,
+  "ImageStartX": 153.0,
+  "ImageStartY": 153.0,
+  "TargetCS": 5.0,
   "SliderScale": 1.0,
-  "Quality": 15,
+  "Quality": 25,
   "HasSliderBall": true,
-  "ChainAllVisibleBallPaths": false,
-  "BallSwitchMilliseconds": 4,
+  "ChainAllVisibleBallPaths": true,
+  "BallSwitchMilliseconds": 0.1,
   "IsGlitchOn": false,
   "GlitchAmount": 45.0,
   "GlitchFrequency": 40.0,
@@ -54,6 +59,6 @@
   "AlphaOn": true,
   "BorderColorHex": "#FFFFFFFF",
   "TrackColorPickerColorHex": "#FF24242E",
-  "SelectedSliderLine": "100,100,1000,2,0,L|160:100,1,60",
+  "SelectedSliderLine": "200,200,2000,2,0,L|480:200,2,280",
   "BallPathSliderLine": ""
 }

@@ -15,6 +15,7 @@ namespace StandalonePicturator.View.SliderPicturator;
 
 public sealed class BallGraphEditor : UserControl
 {
+    public bool BallOnly { get; set; }
     private readonly GraphSurface graph = new();
     private readonly TextBox time = new() { Name = "GraphTimeInput", Width = 74, Margin = new Thickness(4) };
     private readonly TextBox position = new() { Name = "GraphPositionInput", Width = 64, Margin = new Thickness(4) };
@@ -160,7 +161,7 @@ public sealed class BallGraphEditor : UserControl
         int revision = segmentRevision;
         var owner = model;
         try {
-            using var request = PicturatorExportRequest.Capture(owner);
+            using var request = BallOnly ? PicturatorExportRequest.CaptureBallOnly(owner) : PicturatorExportRequest.Capture(owner);
             double circleSize = owner.TargetCS;
             segmentStatus.Text = "Calculating slider path…";
             var result = await System.Threading.Tasks.Task.Run(() => {

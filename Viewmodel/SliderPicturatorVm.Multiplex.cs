@@ -5,12 +5,12 @@ namespace StandalonePicturator.Viewmodel;
 
 public partial class SliderPicturatorVm
 {
-    private int ballSwitchMilliseconds = 4;
-    public int BallSwitchMilliseconds {
+    private double ballSwitchMilliseconds = 4;
+    public double BallSwitchMilliseconds {
         get => ballSwitchMilliseconds;
-        set { if (Set(ref ballSwitchMilliseconds, System.Math.Clamp(value, 1, 32))) SaveSession(); }
+        set { if (Set(ref ballSwitchMilliseconds, System.Math.Clamp(double.IsFinite(value) ? value : 4, .1, 32))) SaveSession(); }
     }
-    public MultiplexBallMotion CreateMultiplexMotion()
+    public MultiplexBallMotion CreateMultiplexMotion(double minimumInterval = 1)
     {
         if (!HasSliderBall || !ChainAllVisibleBallPaths) return null;
         var sources = VisibleLayers.Where(l => l.HasSliderBall)
@@ -18,6 +18,6 @@ public partial class SliderPicturatorVm
         if (sources.Length == 0) return null;
         return new MultiplexBallMotion(sources.Select(s => s.Slider).ToArray(),
             sources.Select(s => s.Layer.BallGraphEnabled ? s.Layer.BallGraphPoints.ToArray() : null).ToArray(),
-            Duration, BallSwitchMilliseconds);
+            Duration, System.Math.Max(minimumInterval, BallSwitchMilliseconds));
     }
 }

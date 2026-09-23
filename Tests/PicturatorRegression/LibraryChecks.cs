@@ -95,6 +95,20 @@ SliderTickRate:1
             Check(multiplex.MultiplexMotion.Count == 2 && vm.CreateMultiplexMotion().Count == 1, "Snapshot remains independent of visibility edits");
             second.IsVisible = true;
         }
+        foreach(double interval in new[]{1d,.1}) {
+            vm.BallSwitchMilliseconds=interval;
+            using var hidden=PicturatorExportRequest.CaptureBallOnly(vm);
+            Check(hidden.Image.Width==1 && hidden.CompositeField[0,0]>1,"Hidden-body export has no picture samples");
+            var points=PicturatorExporter.GeneratePath(hidden,5);
+            var output=hidden.BallSlider.DeepCopy(); output.SetAllCurvePoints(points);
+            output.PixelLength=Enumerable.Range(1,points.Count-1).Sum(i=>(points[i]-points[i-1]).Length);
+            int samples=(int)Math.Ceiling(vm.Duration/hidden.SampleInterval);
+            double error=0; var path=output.GetSliderPath();
+            for(int i=1;i<samples;i++) error=Math.Max(error,(path.SliderballPositionAt(i,samples)-hidden.MultiplexMotion.PositionAt(i/(double)samples)).Length);
+            Check(error<2,"Hidden-body motion follows requested sample targets");
+            Console.WriteLine($"Hidden body {interval} ms: {points.Count} anchors; model error {error:F3}px");
+        }
+        vm.BallSwitchMilliseconds=4;
         vm.DuplicateLibraryItem();
         Check(vm.CreateMultiplexMotion().Count == 3, "Three or more ball routes supported");
         vm.RemoveLibraryItem(); vm.ActiveLibraryItem = first;

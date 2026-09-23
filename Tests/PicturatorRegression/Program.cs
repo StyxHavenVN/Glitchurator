@@ -64,7 +64,21 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        GlitchChecks.Run();
+        if (args.Contains("--cuts-only")) { CutSelectionChecks.Run(); return; }
+        if (args.Contains("--storage-only")) {
+            string folder=Path.Combine(Path.GetTempPath(),"styx-storage-"+Guid.NewGuid().ToString("N"));
+            Environment.SetEnvironmentVariable("STYX_PICTURATOR_DATA",folder);
+            string path=PicturatorStorage.FilePath("picturator_library.json");
+            PicturatorStorage.Write(path,"first");
+            PicturatorStorage.Write(path,"second");
+            Check(File.ReadAllText(path)=="second","Current save");
+            Check(File.ReadAllText(path+".bak")=="first","Backup save");
+            Check(Path.GetDirectoryName(path)==folder,"Stable data root");
+            Console.WriteLine("Storage checks passed.");
+            return;
+        }
+        if (args.Contains("--aligned-glitch-only")) { AlignedGlitchChecks.Run(); return; }
+        if (!args.Contains("--ball-only")) GlitchChecks.Run();
         if (args.Contains("--glitch-only")) return;
         var app = new StandalonePicturator.App();
         app.InitializeComponent();
@@ -78,6 +92,8 @@ internal static class Program
         if (args.Contains("--extreme-only")) { ExtremeChecks.Run(work); return; }
         if (args.Contains("--tick-only")) { TickArtChecks.Run(work); return; }
         if (args.Contains("--library-only")) { LibraryChecks.Run(work); return; }
+        if (args.Contains("--ball-only")) { LibraryChecks.Run(work); SharedMapChecks.Run(work); return; }
+        if (args.Contains("--effects-only")) { EffectsChecks.Run(work); return; }
         using (var mask = new System.Drawing.Bitmap(65, 65)) {
             using (var g = System.Drawing.Graphics.FromImage(mask)) {
                 g.Clear(System.Drawing.Color.Black);
@@ -364,3 +380,6 @@ internal static class Program
         app.Shutdown();
     }
 }
+
+
+

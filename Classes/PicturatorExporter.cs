@@ -28,7 +28,28 @@ public sealed class PicturatorExportRequest : IDisposable
     public NativeGlitchSnapshot NativeGlitch { get; private set; }
     public double[,] CompositeField { get; private set; }
     public MultiplexBallMotion MultiplexMotion { get; init; }
+    public double SampleInterval { get; init; } = 1;
 
+    // Snapshot visible ball paths without image scanlines for the invisible-body export mode.
+    public static PicturatorExportRequest CaptureBallOnly(SliderPicturatorVm vm)
+    {
+        if (!vm.VisibleLayers.Any(l => l.HasSliderBall && l.CreateSingleBallSlider() != null))
+            throw new InvalidOperationException("Show at least one layer with a sliderball path.");
+        var ball = vm.CreateBallSlider();
+        if (ball == null) throw new InvalidOperationException("Enable Sliderball and load at least one visible slider path.");
+        var blank = new Bitmap(1,1); blank.SetPixel(0,0,Color.Black);
+        return new PicturatorExportRequest {
+            Path=vm.BeatmapPath, Image=blank, BallSlider=ball, Shape=vm.SelectedSlider?.DeepCopy(),
+            Start=ball.Pos, ImageStart=new Vector2(0,0), Time=vm.TimeCode,Duration=vm.Duration,
+            Resolution=vm.YResolution,Viewport=vm.ViewportSize,Quality=1,MinimumTumourLength=12,
+            CompositeField=new double[,] {{1.2}},
+            MotionGraph=vm.BallGraphEnabled?vm.BallGraphPoints.ToArray():null,
+            MultiplexMotion=vm.CreateMultiplexMotion(.1),
+            SampleInterval=vm.ChainAllVisibleBallPaths?Math.Min(1,vm.BallSwitchMilliseconds):1
+        };
+    }
+
+    // Freeze visible layers and their shader fields so export uses a consistent preview state.
     public static PicturatorExportRequest Capture(SliderPicturatorVm vm)
     {
         if (vm.Bm == null) throw new InvalidOperationException("Import a shape slider or image first.");
@@ -87,6 +108,7 @@ public sealed class PicturatorExportRequest : IDisposable
 
 public static class PicturatorExporter
 {
+    // Convert the captured image and motion schedule into osu! slider control points.
     public static System.Collections.Generic.List<Vector2> GeneratePath(PicturatorExportRequest request, double circleSize)
     {
         if (!double.IsFinite(request.Duration) || request.Duration < 2 || request.Duration > 60000)
@@ -98,7 +120,7 @@ public static class PicturatorExporter
             circleSize, request.Start, request.ImageStart,
             ball, request.Resolution, request.Viewport, true, true, true, true, true, true, request.Quality,
             request.MotionGraph == null ? null : t => BallMotionGraph.Evaluate(request.MotionGraph, t), request.NativeRadiusPixels, request.CompositeField ?? request.NativeGlitch?.Build(request.NativeRadiusPixels, request.Quality), request.MinimumTumourLength,
-            request.MultiplexMotion == null ? null : request.MultiplexMotion.PositionAt);
+            request.MultiplexMotion == null ? null : request.MultiplexMotion.PositionAt, request.SampleInterval);
         if (points == null || points.Count < 2)
             throw new InvalidOperationException("Cannot generate a slider path from this image.");
         // Use exactly the integer anchors that will be written to the .osu file.
@@ -106,6 +128,7 @@ public static class PicturatorExporter
         return points;
     }
 
+    // Generate one slider, write it into the beatmap, and preserve the map backup.
     public static HitObject Export(PicturatorExportRequest request)
     {
         if (!double.IsFinite(request.Duration) || request.Duration < 2 || request.Duration > 60000)
@@ -160,3 +183,4 @@ public static class PicturatorExporter
         return slider;
     }
 }
+

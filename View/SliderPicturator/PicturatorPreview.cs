@@ -15,7 +15,7 @@ using StandalonePicturator.Viewmodel;
 namespace StandalonePicturator.View.SliderPicturator;
 
 /// <summary>Edits in osu! coordinates; the window's size never changes exported coordinates.</summary>
-public sealed class PicturatorPreview : UserControl
+public sealed partial class PicturatorPreview : UserControl
 {
     private readonly PreviewSurface surface = new();
     private readonly Slider timeline = new() { Minimum = 0, Maximum = 1, Margin = new Thickness(6), Width = 180 };
@@ -25,12 +25,14 @@ public sealed class PicturatorPreview : UserControl
     private readonly Stopwatch elapsed = new();
     private SliderPicturatorVm model;
     private double startProgress;
+    public bool BallOnly { get; set; }
+    private TextBlock previewHint;
 
     public PicturatorPreview()
     {
         var root = new DockPanel();
-        var hint = new TextBlock {
-            Text = "Drag image: move • Drag square / scroll: scale\nShift + drag: move ball path • Ctrl + scroll: thickness (CS)\nPreview shows placement; verify shader/glitch appearance in osu!.",
+        var hint = previewHint = new TextBlock {
+            Text = "Drag image: move • Drag square / scroll: scale\nShift + drag: move ball path • Ctrl + scroll: thickness (CS)\nRight click the selected image: Cut / Freehand cut / Undo cut\nPreview shows placement; verify shader/glitch appearance in osu!.",
             Foreground = Brushes.LightGray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6), FontSize = 11
         };
         DockPanel.SetDock(hint, Dock.Bottom);
@@ -76,15 +78,19 @@ public sealed class PicturatorPreview : UserControl
         if (model != null) { model.PropertyChanged -= Changed; model.PreviewProgressChanged -= Seek; }
         model = DataContext as SliderPicturatorVm;
         model?.SyncOsuResolution();
+        surface.CancelActiveCut();
         surface.Model = model;
+        surface.BallOnly = BallOnly;
+        if (BallOnly) previewHint.Text = "Drag frame: move path • Drag corner / scroll: scale\nShift + drag: offset ball path • Cyan circles: guide positions\nPreview shows motion targets; test hidden-body rendering and flicker in osu!.";
         if (model != null) { model.PropertyChanged += Changed; model.PreviewProgressChanged += Seek; timeline.Value = model.GetPreviewProgress(); }
         surface.RefreshPath();
         surface.Fit();
         UpdateProgress();
     }
 
-private void Changed(object sender, PropertyChangedEventArgs e)
+    private void Changed(object sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(SliderPicturatorVm.ActiveLibraryItem)) surface.CancelActiveCut();
         if (e.PropertyName is nameof(SliderPicturatorVm.SliderStartX) or nameof(SliderPicturatorVm.SliderStartY)
             or nameof(SliderPicturatorVm.SliderScale) or nameof(SliderPicturatorVm.BallOffsetX)
             or nameof(SliderPicturatorVm.BallPathScale) or nameof(SliderPicturatorVm.BallOffsetY) or nameof(SliderPicturatorVm.BallPathSlider)
@@ -109,10 +115,11 @@ private void Changed(object sender, PropertyChangedEventArgs e)
         timeLabel.Text = $"{timeline.Value * (model?.Duration ?? 1000):F0} ms";
     }
 
-    private sealed class PreviewSurface : FrameworkElement
+    private sealed partial class PreviewSurface : FrameworkElement
     {
         public SliderPicturatorVm Model { get; set; }
         public double Progress { get; set; }
+        public bool BallOnly { get; set; }
         private SliderPath? path;
         private Geometry route;
         private StandalonePicturator.Classes.MultiplexBallMotion multiplex;
@@ -130,6 +137,7 @@ private void Changed(object sender, PropertyChangedEventArgs e)
 
         public PreviewSurface()
         {
+            InitializeCuts();
             ClipToBounds = true;
             Focusable = true;
             Cursor = Cursors.SizeAll;
@@ -147,7 +155,7 @@ private void Changed(object sender, PropertyChangedEventArgs e)
 
         public void RefreshPath()
         {
-            multiplex = Model?.CreateMultiplexMotion();
+            multiplex = Model?.CreateMultiplexMotion(BallOnly ? .1 : 1);
             var slider = Model?.CreateSingleBallSlider();
             path = slider?.GetSliderPath();
             route = null;
@@ -192,7 +200,7 @@ private void Changed(object sender, PropertyChangedEventArgs e)
             for (int y = 0; y <= 384; y += 64) dc.DrawLine(gridPen, ToScreen(new Point(0, y)), ToScreen(new Point(512, y)));
             dc.DrawRectangle(null, new Pen(Brushes.SlateGray, 1), ScreenRect(new Rect(0, 0, 512, 384)));
             DrawText(dc, "osu! 512 × 384", new Point(8, 8), Brushes.SlateGray);
-            if (Model != null) foreach (var layer in Model.VisibleLayers)
+            if (!BallOnly && Model != null) foreach (var layer in Model.VisibleLayers)
                 if (layer.BmImage != null) dc.DrawImage(layer.BmImage, ScreenRect(layer.PreviewImageBounds));
             handle = Rect.Empty; ballFrame = Rect.Empty;
             if (Model?.Bm == null) {
@@ -229,6 +237,7 @@ private void Changed(object sender, PropertyChangedEventArgs e)
             dc.DrawEllipse(Brushes.White, null, ball, 3, 3);
             DrawText(dc, $"X {Model.SliderStartX:F1}  Y {Model.SliderStartY:F1}  •  {Model.SliderScale:F2}×  •  CS {Model.TargetCS:F1}",
                 new Point(8, ActualHeight - 26), Brushes.Turquoise);
+            DrawCutGuide(dc);
         }
 
         private void DrawText(DrawingContext dc, string text, Point point, Brush brush) => dc.DrawText(new FormattedText(

@@ -19,5 +19,20 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        var shared = Picturator.ViewModel;
+        DataContext = shared;
+        var analyzer = (StandalonePicturator.Viewmodel.SliderAnalyzerVm)Analyzer.DataContext;
+        bool synchronizing = false;
+        shared.PropertyChanged += (_, e) => {
+            if (synchronizing || e.PropertyName != nameof(shared.BeatmapPath)) return;
+            synchronizing = true;
+            try { analyzer.OsuPath = shared.BeatmapPath; } finally { synchronizing = false; }
+        };
+        analyzer.PropertyChanged += (_, e) => {
+            if (synchronizing || e.PropertyName != nameof(analyzer.OsuPath)) return;
+            synchronizing = true;
+            try { shared.BeatmapPath = analyzer.OsuPath; } finally { synchronizing = false; }
+        };
+        analyzer.OsuPath = shared.BeatmapPath;
     }
 }

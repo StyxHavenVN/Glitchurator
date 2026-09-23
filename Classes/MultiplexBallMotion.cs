@@ -12,15 +12,15 @@ public sealed class MultiplexBallMotion
     private readonly SliderPath[] paths;
     private readonly BallGraphPoint[][] graphs;
     public int Count => paths.Length;
-    public int SwitchMilliseconds { get; }
+    public double SwitchMilliseconds { get; }
     public double Duration { get; }
-    public MultiplexBallMotion(HitObject[] sliders, BallGraphPoint[][] graphs, double duration, int switchMilliseconds)
+    public MultiplexBallMotion(HitObject[] sliders, BallGraphPoint[][] graphs, double duration, double switchMilliseconds)
     {
         if (sliders.Length == 0 || graphs.Length != sliders.Length) throw new ArgumentException("At least one matching path and graph is required.");
         paths = sliders.Select(s => s.DeepCopy().GetSliderPath()).ToArray();
         this.graphs = graphs.Select(g => g?.ToArray()).ToArray();
         Duration = Math.Max(2, duration);
-        SwitchMilliseconds = Math.Clamp(switchMilliseconds, 1, 32);
+        SwitchMilliseconds = Math.Clamp(switchMilliseconds, .1, 32);
     }
     public int RouteAt(double progress) => (int)(Math.Floor((Math.Clamp(progress, 0, 1) * Duration + 1e-7) / SwitchMilliseconds) % Count);
     public Vector2 PositionOnRoute(int index, double progress) => paths[index].PositionAt(graphs[index] == null

@@ -22,7 +22,7 @@ namespace StandalonePicturator.Viewmodel
     public partial class SliderPicturatorVm : BindableBase
     {
         #region Properties
-        private static readonly string SessionFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "picturator_session.json");
+        private static readonly string SessionFilePath = StandalonePicturator.Classes.PicturatorStorage.FilePath("picturator_session.json");
 
         private CancellationTokenSource previewTokenSource;
         private bool isProcessingPreview;
@@ -156,6 +156,9 @@ namespace StandalonePicturator.Viewmodel
         // =========================================================================
         // THÔNG SỐ TÙY CHỌN HIỆU ỨNG NHIỄU SLIDER (GLITCH EFFECT)
         // =========================================================================
+        [JsonIgnore]
+        public bool IsAnyGlitchEnabled => IsGlitchOn || LayeredGlitch;
+
         private bool isGlitchOn = false;
         public bool IsGlitchOn
         {
@@ -163,6 +166,7 @@ namespace StandalonePicturator.Viewmodel
             set
             {
                 if (Set(ref isGlitchOn, value)) {
+                    RaisePropertyChanged(nameof(IsAnyGlitchEnabled));
                     RefreshSource();
                     SaveSession();
                 }
@@ -513,11 +517,52 @@ namespace StandalonePicturator.Viewmodel
             if (dialog.ShowDialog() == true) ImportImages(dialog.FileNames);
         }
 
-        // THUẬT TOÁN TẠO NHIỄU GLITCH NGUYÊN BẢN (SPURIOUS SCANLINE PROTRUSIONS & SLICE TEARING)
-        public static void ApplyGlitch(Bitmap bmp, double amountOsuPx, double frequencyPercent, int thickness, int seed, double resolution = 1080)
+        // THUẬT TOÁN TẠO NHIỄU GLITCH XOAY THEO HƯỚNG BẤT KỲ (DIRECTION ROTATION)
+        // THUẬT TOÁN TẠO NHIỄU GLITCH NGUYÊN BẢN (SPURIOUS SCANLINE PROTRUSIONS & SLICE TEARING) CÓ HỖ TRỢ DIRECTION
+        public static void ApplyGlitch(Bitmap bmp, double amountOsuPx, double frequencyPercent, int thickness, int seed, double resolution = 1080, double angleDegrees = 0)
         {
             if (bmp == null || amountOsuPx <= 0 || frequencyPercent <= 0) return;
 
+            if (Math.Abs(angleDegrees) < 0.5)
+            {
+                ApplyGlitchCore(bmp, amountOsuPx, frequencyPercent, thickness, seed, resolution);
+                return;
+            }
+
+            int origW = bmp.Width;
+            int origH = bmp.Height;
+            int diag = (int)Math.Ceiling(Math.Sqrt(origW * origW + origH * origH)) + 8;
+
+            using (Bitmap rotBmp = new Bitmap(diag, diag, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+            {
+                using (Graphics g = Graphics.FromImage(rotBmp))
+                {
+                    g.Clear(Color.Black);
+                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                    g.PixelOffsetMode = PixelOffsetMode.Half;
+                    g.TranslateTransform(diag / 2f, diag / 2f);
+                    g.RotateTransform((float)-angleDegrees);
+                    g.TranslateTransform(-origW / 2f, -origH / 2f);
+                    g.DrawImage(bmp, 0, 0);
+                }
+
+                ApplyGlitchCore(rotBmp, amountOsuPx, frequencyPercent, thickness, seed, resolution);
+
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    g.Clear(Color.Black);
+                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                    g.PixelOffsetMode = PixelOffsetMode.Half;
+                    g.TranslateTransform(origW / 2f, origH / 2f);
+                    g.RotateTransform((float)angleDegrees);
+                    g.TranslateTransform(-diag / 2f, -diag / 2f);
+                    g.DrawImage(rotBmp, 0, 0);
+                }
+            }
+        }
+
+        private static void ApplyGlitchCore(Bitmap bmp, double amountOsuPx, double frequencyPercent, int thickness, int seed, double resolution = 1080)
+        {
             double scaleFactor = (resolution - 16.0) / 480.0;
             int maxDisplacement = (int)Math.Max(5, amountOsuPx * scaleFactor);
             Random rand = new Random(seed);
@@ -525,7 +570,7 @@ namespace StandalonePicturator.Viewmodel
             int w = bmp.Width;
             int h = bmp.Height;
 
-            // 1. Scanline Glitch Spikes (Tia răng cưa quét ngang văng ra ngoài mép)
+            // 1. Scanline Glitch Spikes (Tia răng cưa)
             using (Graphics g = Graphics.FromImage(bmp))
             {
                 using (Pen whitePen = new Pen(Color.White, 1f))
@@ -549,7 +594,6 @@ namespace StandalonePicturator.Viewmodel
                                 int spikeH = rand.Next(1, Math.Max(2, thickness + 1));
                                 whitePen.Width = spikeH;
 
-                                // Bắn tia sang trái
                                 if (rand.NextDouble() < 0.70)
                                 {
                                     int spikeLen = rand.Next((int)(maxDisplacement * 0.35), maxDisplacement + 1);
@@ -557,7 +601,6 @@ namespace StandalonePicturator.Viewmodel
                                     g.DrawLine(whitePen, targetX, y, xMin, y);
                                 }
 
-                                // Bắn tia sang phải
                                 if (rand.NextDouble() < 0.70)
                                 {
                                     int spikeLen = rand.Next((int)(maxDisplacement * 0.35), maxDisplacement + 1);
@@ -569,7 +612,7 @@ namespace StandalonePicturator.Viewmodel
                     }
                 }
 
-                // 2. Horizontal Cutout Slits (Vết rách ngang bên trong thân slider)
+                // 2. Horizontal Cutout Slits (Vết rách)
                 using (Pen blackPen = new Pen(Color.Black, 1f))
                 {
                     for (int y = 0; y < h; y++)
@@ -598,7 +641,7 @@ namespace StandalonePicturator.Viewmodel
                 }
             }
 
-            // 3. Horizontal Slice Displacement (Giật trượt lát cắt ngang)
+            // 3. Slice Displacement (Giật trượt lát cắt)
             using (Bitmap copy = (Bitmap)bmp.Clone())
             {
                 int y = 0;
@@ -884,6 +927,7 @@ namespace StandalonePicturator.Viewmodel
 
         private SessionData CaptureSessionData() => new SessionData {
             NativeSliderShading = this.NativeSliderShading,
+            Effects = layerEffects.Copy(),
             AutoOsuResolution = AutoOsuResolution,
             BallPathScale = BallPathScale,
             MinimumTumourLength = MinimumTumourLength,
@@ -927,7 +971,7 @@ namespace StandalonePicturator.Viewmodel
         {
             if (loadingSession || detachedLayer) return;
             try {
-                File.WriteAllText(SessionFilePath, JsonConvert.SerializeObject(CaptureSessionData(), Formatting.Indented));
+                StandalonePicturator.Classes.PicturatorStorage.Write(SessionFilePath, JsonConvert.SerializeObject(CaptureSessionData(), Formatting.Indented));
                 SaveLibrary();
             } catch { }
         }
@@ -955,6 +999,7 @@ namespace StandalonePicturator.Viewmodel
                 IsProcessingPreview = false;
                 loadingSession = true;
                 nativeSliderShading = data.NativeSliderShading;
+                layerEffects = data.Effects?.Copy() ?? new StandalonePicturator.Classes.LayerEffects(); NotifyEffects();
                 RaisePropertyChanged(nameof(NativeSliderShading));
                 autoOsuResolution = data.AutoOsuResolution;
                 ballPathScale = double.IsFinite(data.BallPathScale) ? Math.Clamp(data.BallPathScale, .1, 5) : 1;
@@ -984,7 +1029,7 @@ namespace StandalonePicturator.Viewmodel
                 this.quality = data.Quality > 0 ? data.Quality : 25;
                 this.hasSliderBall = data.HasSliderBall;
                 this.chainAllVisibleBallPaths = data.ChainAllVisibleBallPaths;
-                ballSwitchMilliseconds = Math.Clamp(data.BallSwitchMilliseconds, 1, 32);
+                ballSwitchMilliseconds = Math.Clamp(data.BallSwitchMilliseconds, .1, 32);
                 RaisePropertyChanged(nameof(BallSwitchMilliseconds));
                 this.isGlitchOn = data.IsGlitchOn;
                 this.glitchAmount = Math.Clamp(data.GlitchAmount, 0, 150);
@@ -1060,6 +1105,7 @@ namespace StandalonePicturator.Viewmodel
 
         private class SessionData
         {
+            public StandalonePicturator.Classes.LayerEffects Effects { get; set; } = new();
             public bool NativeSliderShading { get; set; } = true;
             public bool AutoOsuResolution { get; set; } = true;
             public double BallPathScale { get; set; } = 1;
@@ -1082,7 +1128,7 @@ namespace StandalonePicturator.Viewmodel
             public int Quality { get; set; }
             public bool HasSliderBall { get; set; }
             public bool ChainAllVisibleBallPaths { get; set; }
-            public int BallSwitchMilliseconds { get; set; } = 4;
+            public double BallSwitchMilliseconds { get; set; } = 4;
             public bool IsGlitchOn { get; set; }
             public double GlitchAmount { get; set; } = 45;
             public double GlitchFrequency { get; set; } = 40;
@@ -1101,3 +1147,4 @@ namespace StandalonePicturator.Viewmodel
         }
     }
 }
+

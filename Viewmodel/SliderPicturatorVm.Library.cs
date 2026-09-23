@@ -47,13 +47,14 @@ public partial class SliderPicturatorVm
         }
     }
     private PicturatorLibraryItem activeLibraryItem;
-    private static string LibraryFile => System.IO.Path.Combine(AppContext.BaseDirectory, "picturator_library.json");
+    private static string LibraryFile => PicturatorStorage.FilePath("picturator_library.json");
     [JsonIgnore] public PicturatorLibraryItem ActiveLibraryItem {
         get => activeLibraryItem;
         set {
             if (value == activeLibraryItem || value == null || !LibraryItems.Contains(value)) return;
             var state = JsonConvert.DeserializeObject<SessionData>(value.State);
             if (state == null) return;
+            state.BeatmapPath = BeatmapPath;
             SaveLibrary(); switchingLibrary = true;
             try { activeLibraryItem = value; RestoreSessionData(state); }
             finally { switchingLibrary = false; }
@@ -64,6 +65,7 @@ public partial class SliderPicturatorVm
     [JsonIgnore] public string LibraryStatus { get => libraryStatus; private set => Set(ref libraryStatus, value); }
     private sealed class LibraryData { public List<PicturatorLibraryItem> Items { get; set; } = new(); public string ActiveId { get; set; } }
 
+    // Restore saved layers and the active selection; each layer owns its independent settings.
     private void InitializeLibrary()
     {
         switchingLibrary = true;
@@ -85,11 +87,12 @@ public partial class SliderPicturatorVm
         finally { switchingLibrary = false; libraryReady = true; }
         RaisePropertyChanged(nameof(ActiveLibraryItem));
     }
+    // Capture current edits before serializing the full library; skip incomplete restore operations.
     private void SaveLibrary()
     {
         if (!libraryReady || switchingLibrary || loadingSession) return;
         if (activeLibraryItem != null) activeLibraryItem.State = JsonConvert.SerializeObject(CaptureSessionData());
-        try { File.WriteAllText(LibraryFile, JsonConvert.SerializeObject(new LibraryData { Items = LibraryItems.ToList(), ActiveId = activeLibraryItem?.Id }, Formatting.Indented)); }
+        try { PicturatorStorage.Write(LibraryFile, JsonConvert.SerializeObject(new LibraryData { Items = LibraryItems.ToList(), ActiveId = activeLibraryItem?.Id }, Formatting.Indented)); }
         catch (Exception ex) { LibraryStatus = "Cannot save library: " + ex.Message; }
         RaisePropertyChanged(nameof(VisibleLayers));
     }
@@ -99,13 +102,22 @@ public partial class SliderPicturatorVm
         item.PropertyChanged += (_, _) => SaveLibrary();
         LibraryItems.Add(item); ActiveLibraryItem = item;
     }
+    // Resolve copied editor timestamps or raw slider lines, then create editable library layers.
     public void ImportSliderText(string clipboardText)
     {
         var map = File.Exists(BeatmapPath) ? new BeatmapEditor(BeatmapPath).Beatmap : null;
         var sliders = EditorSliderSelection.Resolve(clipboardText, map);
+        bool generated = sliders.Any(s => s.GetLine().Count(c => c == '|') > 2000);
+        if (generated && MessageBox.Show(
+            "This selection appears to contain a generated Slider Picturator slider. Import it? It may be slow and will not restore the original editable layers.",
+            "Import Slider Picturator?", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) {
+            LibraryStatus = "Import cancelled. Your current library is unchanged.";
+            return;
+        }
         foreach (var slider in sliders) {
             var state = CaptureSessionData();
             state.SelectedSliderLine = slider.GetLine(); state.PictureFile = "";
+            state.Effects.Cuts.Clear();
             state.TimeCode = slider.Time;
             state.Duration = slider.TemporalLength > 0 ? Math.Clamp(Math.Round(slider.TemporalLength * Math.Max(1, slider.Repeat)), 2, 60000) : 1000;
             state.SliderStartX = slider.Pos.X; state.SliderStartY = slider.Pos.Y; state.SliderScale = 1;
@@ -130,6 +142,7 @@ public partial class SliderPicturatorVm
             else LibraryStatus = "Clipboard does not contain a slider selection.";
         } catch (Exception ex) { LibraryStatus = ex.Message; }
     }
+    // Validate each image before adding it; failed files do not discard successful imports.
     public void ImportImages(IEnumerable<string> files)
     {
         int count = 0;
@@ -139,6 +152,7 @@ public partial class SliderPicturatorVm
                 using var check = new System.Drawing.Bitmap(file);
                 var state = CaptureSessionData();
                 state.SelectedSliderLine = ""; state.PictureFile = System.IO.Path.GetFullPath(file);
+                state.Effects.Cuts.Clear();
                 state.BallPathSliderLine = ""; state.HasSliderBall = false; state.BallGraphEnabled = false;
                 state.BallOffsetX = 0; state.BallOffsetY = 0; state.BallPathScale = 1; state.SliderScale = 1;
                 AddLibraryState(state, System.IO.Path.GetFileName(file), "Image"); count++;
@@ -148,6 +162,7 @@ public partial class SliderPicturatorVm
         if (failures.Count > 0) LibraryStatus = $"Imported {count} image(s). " + string.Join(" ", failures);
         SaveSession();
     }
+    // Release cached preview resources and select the next remaining layer.
     public void RemoveLibraryItem()
     {
         if (activeLibraryItem == null) return;
@@ -158,9 +173,12 @@ public partial class SliderPicturatorVm
         else { SelectedSlider = null; BallPathSlider = null; Bm = null; BmImage = null; PictureFile = ""; RegeneratePreview(); SegmentCount = 0; RaisePropertyChanged(nameof(ActiveLibraryItem)); }
         SaveSession();
     }
+    // Copy the complete editable state into a new layer with a distinct identity.
     public void DuplicateLibraryItem()
     {
         if (activeLibraryItem == null) return;
         AddLibraryState(CaptureSessionData(), activeLibraryItem.Name + " (copy)", activeLibraryItem.Kind);
     }
 }
+
+
