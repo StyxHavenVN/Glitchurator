@@ -33,19 +33,6 @@ Bộ cài chứa sẵn runtime .NET và thư viện. Không cần cài từng th
 2. Làm theo cửa sổ cài đặt và bấm **Install**.
 3. Bấm **Finish**, mở **Glitchurator** từ Desktop hoặc Start Menu.
 
-Trong thư mục dự án, bộ cài nằm tại [artifacts/setup/Glitchurator-Setup.exe](artifacts/setup/Glitchurator-Setup.exe). Đường dẫn này chỉ có file sau khi đóng gói; nếu tải mã nguồn, cần build theo phần dành cho người phát triển.
-
-Bộ cài chưa có chữ ký số. Nếu Windows cảnh báo nhà phát hành, kiểm tra nguồn của file trước khi tiếp tục.
-
-Để chia sẻ cho người khác, chỉ cần gửi file bộ cài. Nếu chia sẻ bản chạy không qua bộ cài, cần giữ toàn bộ thư mục xuất bản, không chỉ riêng file `.exe`.
-
-### Cập nhật và gỡ cài đặt
-
-- Đóng ứng dụng rồi chạy bộ cài mới để cập nhật.
-- Dữ liệu được lưu riêng, không cần sao chép giữa các thư mục build.
-- Gỡ ứng dụng trong **Windows Settings → Apps → Installed apps**.
-- Tên thư mục cài đặt hoặc dữ liệu có thể vẫn chứa `StyxSliderPicturator` / `SliderPicturator` để tương thích bản cũ.
-
 ## Bắt đầu nhanh
 
 1. Lưu beatmap trong osu! editor.
@@ -218,21 +205,6 @@ Nếu cập nhật thấy thư viện trống, kiểm tra thư mục này và c�
 | Không thấy file chạy | Dùng bộ cài; build kiểm thử có thể chỉ tạo DLL |
 | Cắt không lưu | Bấm Done; Cancel bỏ thay đổi tạm |
 
-## Dành cho người phát triển
-
-Mở `Glitchurator.csproj`. Xem [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) để hiểu luồng xử lý, kiểm tra và đóng gói.
-
-Build Windows x64 kèm runtime:
-
-```powershell
-dotnet publish Glitchurator.csproj -c Release -r win-x64 --self-contained true -p:UseAppHost=true -o artifacts/glitchurator-payload
-```
-
-Tạo bộ cài bằng Inno Setup:
-
-```powershell
-tools\InnoSetup\ISCC.exe packaging\installer.iss
-```
 
 ## Tác giả và chia sẻ
 
