@@ -51,17 +51,6 @@ Bộ cài chứa sẵn runtime .NET và thư viện. Không cần cài từng th
 ### Slider từ osu! editor
 
 Chọn đúng file `.osu`, lưu map trong editor, chọn một hoặc nhiều slider và nhấn **Ctrl+C**. Sau đó bấm **Load copied sliders** hoặc **Import clipboard**.
-
-Clipboard có thể chỉ chứa:
-
-```text
-00:11:827 (2) -
-```
-
-Glitchurator dùng thời gian/lựa chọn này để tìm slider trong file đã lưu. Bạn không cần nhập thời gian thủ công. Dòng hitobject nguyên bản cũng được hỗ trợ.
-
-Nếu phát hiện slider rất nhiều điểm, nghi là slider Picturator đã xuất, ứng dụng sẽ hỏi xác nhận. Chọn **No** để hủy. Nhập lại slider đã xuất không khôi phục được các lớp chỉnh sửa ban đầu.
-
 ### Ảnh PNG
 
 - Bấm **Import PNG / images…** hoặc **Import images…** để chọn ảnh.
