@@ -13,22 +13,36 @@ using StandalonePicturator.Viewmodel;
 
 namespace StandalonePicturator.View.SliderPicturator;
 
+// Interactive timeline and curve editor for non-linear sliderball motion graphs
 public sealed class BallGraphEditor : UserControl
 {
     public bool BallOnly { get; set; }
+
     private readonly GraphSurface graph = new();
     private readonly TextBox time = new() { Name = "GraphTimeInput", Width = 74, Margin = new Thickness(4) };
     private readonly TextBox position = new() { Name = "GraphPositionInput", Width = 64, Margin = new Thickness(4) };
-    private readonly ComboBox curve = new() { Name = "GraphCurveInput", Foreground = Brushes.Black, Background = Brushes.White, Width = 144, Margin = new Thickness(4), DisplayMemberPath = "Value", SelectedValuePath = "Key" };
+    private readonly ComboBox curve = new()
+    {
+        Name = "GraphCurveInput",
+        Foreground = Brushes.Black,
+        Background = Brushes.White,
+        Width = 144,
+        Margin = new Thickness(4),
+        DisplayMemberPath = "Value",
+        SelectedValuePath = "Key"
+    };
+
     private readonly TextBlock status = new() { Foreground = Brushes.Gold, Margin = new Thickness(6), TextWrapping = TextWrapping.Wrap };
-    private SliderPicturatorVm model;
-    private bool refreshing;
     private readonly TextBlock segmentStatus = new() { Text = "Total segments not calculated", Foreground = Brushes.Turquoise, Margin = new Thickness(5), TextWrapping = TextWrapping.Wrap };
     private readonly Button countSegments = new() { Content = "Calculate segments", Margin = new Thickness(4), Padding = new Thickness(8, 4, 8, 4) };
+
+    private SliderPicturatorVm model;
+    private bool refreshing;
     private int segmentRevision;
     private readonly System.Windows.Threading.DispatcherTimer segmentTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
 
-    public static readonly KeyValuePair<BallGraphCurve, string>[] MappingToolsModes = {
+    public static readonly KeyValuePair<BallGraphCurve, string>[] MappingToolsModes =
+    {
         new(BallGraphCurve.SingleCurve, "Single curve"),
         new(BallGraphCurve.SingleCurve2, "Single curve 2"),
         new(BallGraphCurve.SingleCurve3, "Single curve 3"),
@@ -47,62 +61,118 @@ public sealed class BallGraphEditor : UserControl
         var root = new DockPanel { Background = new SolidColorBrush(Color.FromRgb(22, 23, 29)) };
         var tools = new WrapPanel { Margin = new Thickness(6) };
 
-        var enabled = new CheckBox { Content = "Enable graph", Foreground = Brushes.Turquoise, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) };
+        var enabled = new CheckBox
+        {
+            Content = "Enable graph",
+            Foreground = Brushes.Turquoise,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(4)
+        };
         enabled.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SliderPicturatorVm.BallGraphEnabled)) { Mode = BindingMode.TwoWay });
         tools.Children.Add(enabled);
 
-        AddButton(tools, "Linear", () => { model?.ReplaceBallGraph(BallMotionGraph.Default()); graph.Selected = 0; RefreshFields(); });
-        AddButton(tools, "Steps", () => {
-            model?.ReplaceBallGraph(new[] {
-                new BallGraphPoint(0, 0, BallGraphCurve.Hold),
-                new BallGraphPoint(.16, .25, BallGraphCurve.Hold),
-                new BallGraphPoint(.35, .5, BallGraphCurve.Hold),
-                new BallGraphPoint(.63, 1, BallGraphCurve.Hold),
-                new BallGraphPoint(.79, 0, BallGraphCurve.Hold),
-                new BallGraphPoint(1, 1)
-            });
-            graph.Selected = 0; RefreshFields();
+        AddButton(tools, "Linear", () =>
+        {
+            model?.ReplaceBallGraph(BallMotionGraph.Default());
+            graph.Selected = 0;
+            RefreshFields();
         });
-        AddButton(tools, "Add point", () => { if (model != null) graph.AddPoint(model.GetPreviewProgress(), model.EvaluateBallProgress(model.GetPreviewProgress())); });
+
+        AddButton(tools, "Steps", () =>
+        {
+            model?.ReplaceBallGraph(new[]
+            {
+                new BallGraphPoint(0, 0, BallGraphCurve.Hold),
+                new BallGraphPoint(0.16, 0.25, BallGraphCurve.Hold),
+                new BallGraphPoint(0.35, 0.5, BallGraphCurve.Hold),
+                new BallGraphPoint(0.63, 1.0, BallGraphCurve.Hold),
+                new BallGraphPoint(0.79, 0, BallGraphCurve.Hold),
+                new BallGraphPoint(1.0, 1.0)
+            });
+            graph.Selected = 0;
+            RefreshFields();
+        });
+
+        AddButton(tools, "Add point", () =>
+        {
+            if (model != null)
+            {
+                graph.AddPoint(model.GetPreviewProgress(), model.EvaluateBallProgress(model.GetPreviewProgress()));
+            }
+        });
+
         AddButton(tools, "Delete point", () => graph.DeleteSelected());
 
-        DockPanel.SetDock(tools, Dock.Top); root.Children.Add(tools);
+        DockPanel.SetDock(tools, Dock.Top);
+        root.Children.Add(tools);
 
+        // Segment density / pacing controls
         var segmentPanel = new StackPanel { Margin = new Thickness(6, 0, 6, 4) };
         var segmentTools = new WrapPanel();
         segmentTools.Children.Add(Label("Minimum tumour length"));
-        var density = new Slider { Name = "GraphMinimumTumourLength", Minimum = 1, Maximum = 12, TickFrequency = 1,
-            IsSnapToTickEnabled = true, Width = 150, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5) };
+
+        var density = new Slider
+        {
+            Name = "GraphMinimumTumourLength",
+            Minimum = 1,
+            Maximum = 12,
+            TickFrequency = 1,
+            IsSnapToTickEnabled = true,
+            Width = 150,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(5)
+        };
         density.SetBinding(Slider.ValueProperty, new Binding(nameof(SliderPicturatorVm.MinimumTumourLength)) { Mode = BindingMode.TwoWay });
         segmentTools.Children.Add(density);
-        var densityValue = Label("");
+
+        var densityValue = Label(string.Empty);
         densityValue.SetBinding(TextBlock.TextProperty, new Binding(nameof(SliderPicturatorVm.MinimumTumourLength)) { StringFormat = "{0:F1}" });
         segmentTools.Children.Add(densityValue);
+
         AddButton(segmentTools, "Fewer segments", () => { if (model != null) model.MinimumTumourLength = 12; });
         AddButton(segmentTools, "More segments", () => { if (model != null) model.MinimumTumourLength = 1; });
+
         countSegments.Click += async (_, _) => await CountSegmentsAsync();
-        segmentTimer.Tick += async (_, _) => { segmentTimer.Stop(); if (countSegments.IsEnabled) await CountSegmentsAsync(); else segmentTimer.Start(); };
+        segmentTimer.Tick += async (_, _) =>
+        {
+            segmentTimer.Stop();
+            if (countSegments.IsEnabled) await CountSegmentsAsync();
+            else segmentTimer.Start();
+        };
+
         segmentTools.Children.Add(countSegments);
         segmentPanel.Children.Add(segmentTools);
         segmentPanel.Children.Add(segmentStatus);
-        var segmentHint = Label("Increase length for fewer segments; decrease for more. Relative off-image pacing length (1–12), not original slider pixels.");
-        segmentHint.TextWrapping = TextWrapping.Wrap; segmentHint.FontSize = 11;
-        segmentPanel.Children.Add(segmentHint);
-        DockPanel.SetDock(segmentPanel, Dock.Top); root.Children.Add(segmentPanel);
 
+        var segmentHint = Label("Increase length for fewer segments; decrease for more. Relative off-image pacing length (1–12), not original slider pixels.");
+        segmentHint.TextWrapping = TextWrapping.Wrap;
+        segmentHint.FontSize = 11;
+        segmentPanel.Children.Add(segmentHint);
+
+        DockPanel.SetDock(segmentPanel, Dock.Top);
+        root.Children.Add(segmentPanel);
+
+        // Numeric point parameter inputs
         var inputs = new WrapPanel { Margin = new Thickness(6) };
-        inputs.Children.Add(Label("Time (ms)")); inputs.Children.Add(time);
-        inputs.Children.Add(Label("Position (%)")); inputs.Children.Add(position);
+        inputs.Children.Add(Label("Time (ms)"));
+        inputs.Children.Add(time);
+        inputs.Children.Add(Label("Position (%)"));
+        inputs.Children.Add(position);
+
         curve.ItemsSource = MappingToolsModes;
         inputs.Children.Add(curve);
         AddButton(inputs, "Apply", ApplyFields);
 
-        DockPanel.SetDock(inputs, Dock.Bottom); root.Children.Add(inputs);
-        DockPanel.SetDock(status, Dock.Bottom); root.Children.Add(status);
+        DockPanel.SetDock(inputs, Dock.Bottom);
+        root.Children.Add(inputs);
+        DockPanel.SetDock(status, Dock.Bottom);
+        root.Children.Add(status);
 
         var hint = Label("• Left click: add point | Drag point: edit live\n• Drag the small middle handle to bend the curve (Wave: down adds cycles, up removes cycles)\n• Right click: curve menu | Shift: snap to 1/16");
-        hint.TextWrapping = TextWrapping.Wrap; hint.FontSize = 11;
-        DockPanel.SetDock(hint, Dock.Bottom); root.Children.Add(hint);
+        hint.TextWrapping = TextWrapping.Wrap;
+        hint.FontSize = 11;
+        DockPanel.SetDock(hint, Dock.Bottom);
+        root.Children.Add(hint);
 
         root.Children.Add(graph);
         Content = root;
@@ -118,38 +188,76 @@ public sealed class BallGraphEditor : UserControl
         Unloaded += (_, _) => { segmentTimer.Stop(); Detach(); };
     }
 
-    private static TextBlock Label(string text) => new() { Text = text, Foreground = Brushes.LightGray, Margin = new Thickness(5), VerticalAlignment = VerticalAlignment.Center };
+    private static TextBlock Label(string text) => new()
+    {
+        Text = text,
+        Foreground = Brushes.LightGray,
+        Margin = new Thickness(5),
+        VerticalAlignment = VerticalAlignment.Center
+    };
+
     private static void AddButton(Panel parent, string text, Action action)
     {
-        var button = new Button { Content = text, Margin = new Thickness(3), Padding = new Thickness(8, 4, 8, 4) };
-        button.Click += (_, _) => action(); parent.Children.Add(button);
+        var button = new Button
+        {
+            Content = text,
+            Margin = new Thickness(3),
+            Padding = new Thickness(8, 4, 8, 4)
+        };
+        button.Click += (_, _) => action();
+        parent.Children.Add(button);
     }
 
     private void Detach()
     {
-        if (model != null) { model.PropertyChanged -= Changed; model.PreviewProgressChanged -= Playback; }
-        model = null; graph.Model = null;
+        if (model != null)
+        {
+            model.PropertyChanged -= Changed;
+            model.PreviewProgressChanged -= Playback;
+        }
+        model = null;
+        graph.Model = null;
     }
 
     private void Attach()
     {
-        Detach(); model = DataContext as SliderPicturatorVm; graph.Model = model;
-        if (model != null) { model.PropertyChanged += Changed; model.PreviewProgressChanged += Playback; }
-        RefreshFields(); graph.InvalidateVisual();
+        Detach();
+        model = DataContext as SliderPicturatorVm;
+        graph.Model = model;
+
+        if (model != null)
+        {
+            model.PropertyChanged += Changed;
+            model.PreviewProgressChanged += Playback;
+        }
+
+        RefreshFields();
+        graph.InvalidateVisual();
     }
 
     private void Playback(double progress, bool seek) => graph.InvalidateVisual();
 
     private void Changed(object sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is not nameof(SliderPicturatorVm.BmImage) and not nameof(SliderPicturatorVm.SegmentCount)
-            and not nameof(SliderPicturatorVm.IsProcessingPreview)) {
-        segmentRevision++;
-        if (model?.Bm != null) { segmentTimer.Stop(); segmentTimer.Start(); }
-        segmentStatus.Text = "Waiting to update total segments…"; }
-        if (e.PropertyName is nameof(SliderPicturatorVm.BallGraphPoints) or nameof(SliderPicturatorVm.Duration) or nameof(SliderPicturatorVm.BallGraphEnabled))
+        if (e.PropertyName is not nameof(SliderPicturatorVm.BmImage) 
+            and not nameof(SliderPicturatorVm.SegmentCount)
+            and not nameof(SliderPicturatorVm.IsProcessingPreview))
         {
-            RefreshFields(); graph.InvalidateVisual();
+            segmentRevision++;
+            if (model?.Bm != null)
+            {
+                segmentTimer.Stop();
+                segmentTimer.Start();
+            }
+            segmentStatus.Text = "Waiting to update total segments…";
+        }
+
+        if (e.PropertyName is nameof(SliderPicturatorVm.BallGraphPoints) 
+            or nameof(SliderPicturatorVm.Duration) 
+            or nameof(SliderPicturatorVm.BallGraphEnabled))
+        {
+            RefreshFields();
+            graph.InvalidateVisual();
         }
     }
 
@@ -157,61 +265,92 @@ public sealed class BallGraphEditor : UserControl
     {
         segmentTimer.Stop();
         if (model?.Bm == null || !countSegments.IsEnabled) return;
+
         countSegments.IsEnabled = false;
         int revision = segmentRevision;
         var owner = model;
-        try {
+
+        try
+        {
             using var request = BallOnly ? PicturatorExportRequest.CaptureBallOnly(owner) : PicturatorExportRequest.Capture(owner);
             double circleSize = owner.TargetCS;
             segmentStatus.Text = "Calculating slider path…";
-            var result = await System.Threading.Tasks.Task.Run(() => {
+
+            var result = await System.Threading.Tasks.Task.Run(() =>
+            {
                 if (System.IO.File.Exists(request.Path))
-                    circleSize = new StandalonePicturator.Classes.BeatmapHelper.BeatmapEditor(request.Path).Beatmap.Difficulty["CircleSize"].DoubleValue;
+                {
+                    circleSize = new StandalonePicturator.Classes.BeatmapHelper.BeatmapEditor(request.Path)
+                        .Beatmap.Difficulty["CircleSize"].DoubleValue;
+                }
                 var path = PicturatorExporter.GeneratePath(request, circleSize);
                 return path.Count - 1;
             });
-            await Dispatcher.InvokeAsync(() => {
+
+            await Dispatcher.InvokeAsync(() =>
+            {
                 if (model == owner && revision == segmentRevision)
-                    segmentStatus.Text = $"Estimated total segments: {result:N0}• Length {request.MinimumTumourLength:F1}";
-                else segmentStatus.Text = "Settings changed — recalculation pending.";
+                {
+                    segmentStatus.Text = $"Estimated total segments: {result:N0} • Length {request.MinimumTumourLength:F1}";
+                }
+                else
+                {
+                    segmentStatus.Text = "Settings changed — recalculation pending.";
+                }
             });
-        } catch (Exception ex) {
+        }
+        catch (Exception ex)
+        {
             await Dispatcher.InvokeAsync(() => segmentStatus.Text = "Cannot calculate segments: " + ex.Message);
-        } finally { await Dispatcher.InvokeAsync(() => countSegments.IsEnabled = true); }
+        }
+        finally
+        {
+            await Dispatcher.InvokeAsync(() => countSegments.IsEnabled = true);
+        }
     }
 
     private void RefreshFields()
     {
         if (model == null) return;
         refreshing = true;
+
         graph.Selected = Math.Clamp(graph.Selected, 0, model.BallGraphPoints.Count - 1);
         var point = model.BallGraphPoints[graph.Selected];
+
         time.Text = (point.Time * model.Duration).ToString("0.###", CultureInfo.CurrentCulture);
         position.Text = (point.Position * 100).ToString("0.###", CultureInfo.CurrentCulture);
         time.IsReadOnly = graph.Selected == 0 || graph.Selected == model.BallGraphPoints.Count - 1;
         curve.SelectedValue = point.Curve;
+
         status.Text = $"Point {graph.Selected + 1}/{model.BallGraphPoints.Count} • {point.Time * model.Duration:0.###} ms • {point.Position * 100:0.###}%"
-            + (point.Curve == BallGraphCurve.Wave ? $"• Cycles: {BallMotionGraph.GetWaveCycles(point.Curvature):F0}" : "")
-            + (model.BallGraphEnabled ? "" : "• (Graph disabled: linear)");
+            + (point.Curve == BallGraphCurve.Wave ? $" • Cycles: {BallMotionGraph.GetWaveCycles(point.Curvature):F0}" : string.Empty)
+            + (model.BallGraphEnabled ? string.Empty : " • (Graph disabled: linear)");
+
         refreshing = false;
     }
 
-    private static bool Parse(string value, out double result) => double.TryParse(value, NumberStyles.Float, CultureInfo.CurrentCulture, out result)
+    private static bool Parse(string value, out double result) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.CurrentCulture, out result)
         || double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
 
     private void ApplyFields()
     {
         if (model == null || refreshing) return;
-        if (!Parse(time.Text, out double ms) || !Parse(position.Text, out double pos) || !double.IsFinite(ms) || !double.IsFinite(pos)
+
+        if (!Parse(time.Text, out double ms) || !Parse(position.Text, out double pos)
+            || !double.IsFinite(ms) || !double.IsFinite(pos)
             || ms < 0 || ms > model.Duration || pos < 0 || pos > 100)
         {
-            status.Text = $"Enter time from 0 to {model.Duration:0} ms and position from 0 to 100%."; return;
+            status.Text = $"Enter time from 0 to {model.Duration:0} ms and position from 0 to 100%.";
+            return;
         }
+
         var mode = curve.SelectedValue is BallGraphCurve c ? c : BallGraphCurve.Linear;
         model.EditBallGraphPoint(graph.Selected, ms / model.Duration, pos / 100, mode, model.BallGraphPoints[graph.Selected].Curvature);
         model.SetPreviewProgress(model.BallGraphPoints[graph.Selected].Time, true);
     }
 
+    // Canvas element rendering grid, spline interpolation, and interactive handles
     private sealed class GraphSurface : FrameworkElement
     {
         public SliderPicturatorVm Model { get; set; }
@@ -231,7 +370,8 @@ public sealed class BallGraphEditor : UserControl
 
         public GraphSurface()
         {
-            Focusable = true; ClipToBounds = true;
+            Focusable = true;
+            ClipToBounds = true;
 
             MouseLeftButtonDown += (_, e) =>
             {
@@ -239,7 +379,7 @@ public sealed class BallGraphEditor : UserControl
                 Focus();
                 var screenPoint = e.GetPosition(this);
 
-                // 1. Kiểm tra bấm trúng Mốc chính
+                // 1. Primary anchor hit detection
                 int hitPt = Hit(screenPoint);
                 if (hitPt >= 0)
                 {
@@ -253,7 +393,7 @@ public sealed class BallGraphEditor : UserControl
                     return;
                 }
 
-                // 2. Kiểm tra bấm trúng Nốt nhỏ ở giữa phân đoạn (Tension Handle)
+                // 2. Midpoint tension/curvature handle detection
                 int hitHandle = HitHandle(screenPoint);
                 if (hitHandle >= 0)
                 {
@@ -269,12 +409,12 @@ public sealed class BallGraphEditor : UserControl
                     return;
                 }
 
-                // 3. Nhấp chuột trái vào khoảng trống đồ thị: Add point mới tức thì
+                // 3. Click empty graph area to add a new point
                 if (Plot.Contains(screenPoint))
                 {
                     var v = Value(screenPoint);
                     AddPoint(SnapTime(v.X), v.Y);
-                    draggingPoint = true; // Cho phép giữ chuột để kéo mốc mới vừa tạo
+                    draggingPoint = true;
                     CaptureMouse();
                     InvalidateVisual();
                     e.Handled = true;
@@ -286,7 +426,7 @@ public sealed class BallGraphEditor : UserControl
                 if (Model == null) return;
                 var screenPoint = e.GetPosition(this);
 
-                // KÉO MỐC CHÍNH (LIVE UPDATE KHÔNG DELAY)
+                // Live primary anchor drag
                 if (draggingPoint && e.LeftButton == MouseButtonState.Pressed)
                 {
                     var v = Value(screenPoint);
@@ -295,23 +435,23 @@ public sealed class BallGraphEditor : UserControl
                     Model.SetPreviewProgress(Model.BallGraphPoints[Selected].Time, true);
                     InvalidateVisual();
                 }
-                // KÉO NỐT NHỎ Ở GIỮA (LIVE TENSION / WAVE FREQUENCY)
+                // Live segment curvature/tension handle drag
                 else if (draggingHandle && e.LeftButton == MouseButtonState.Pressed)
                 {
-                    double dy = screenPoint.Y - dragStartPoint.Y; // Kéo xuống dy > 0, Kéo lên dy < 0
+                    double dy = screenPoint.Y - dragStartPoint.Y;
                     var segPoint = Model.BallGraphPoints[dragSegmentIndex];
 
                     double newCurv;
                     if (segPoint.Curve == BallGraphCurve.Wave)
                     {
-                        // WAVE: Kéo xuống (dy > 0) là TĂNG sóng (giảm curvature), kéo lên (dy < 0) là GIẢM sóng
-                        double delta = (dy / (Plot.Height * 0.45));
+                        // Wave mode: dragging down increases cycles
+                        double delta = dy / (Plot.Height * 0.45);
                         newCurv = Math.Clamp(dragInitialCurvature - delta, -1.0, 1.0);
                     }
                     else
                     {
-                        // CÁC TÍNH NĂNG KHÁC: Kéo lên (dy < 0) là TĂNG độ cong/uốn, kéo xuống là GIẢM
-                        double delta = (-dy / (Plot.Height * 0.45));
+                        // Standard curves: dragging up increases curvature
+                        double delta = -dy / (Plot.Height * 0.45);
                         newCurv = Math.Clamp(dragInitialCurvature + delta, -1.0, 1.0);
                     }
 
@@ -320,7 +460,6 @@ public sealed class BallGraphEditor : UserControl
                 }
                 else
                 {
-                    // Đổi hình con trỏ chuột khi hover
                     if (Hit(screenPoint) >= 0) Cursor = Cursors.Hand;
                     else if (HitHandle(screenPoint) >= 0) Cursor = Cursors.SizeNS;
                     else Cursor = Cursors.Arrow;
@@ -334,7 +473,7 @@ public sealed class BallGraphEditor : UserControl
                     draggingPoint = false;
                     draggingHandle = false;
                     ReleaseMouseCapture();
-                    Model?.CommitGraphChanges(); // Lưu thay đổi khi nhả chuột
+                    Model?.CommitGraphChanges();
                     SelectionChanged?.Invoke();
                     InvalidateVisual();
                 }
@@ -346,39 +485,37 @@ public sealed class BallGraphEditor : UserControl
         }
 
         private double SnapTime(double t) => Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)
-            ? Math.Round(t * 16) / 16.0 : Math.Round(t * Model.Duration) / Math.Max(1.0, Model.Duration);
+            ? Math.Round(t * 16) / 16.0
+            : Math.Round(t * Model.Duration) / Math.Max(1.0, Model.Duration);
 
         private int Hit(Point screen)
         {
             if (Model == null) return -1;
-            int best = -1; double distance = 100;
+            int best = -1;
+            double distance = 100;
+
             for (int i = 0; i < Model.BallGraphPoints.Count; i++)
             {
                 var p = Model.BallGraphPoints[i];
                 double d = (Screen(p.Time, p.Position) - screen).LengthSquared;
-                if (d <= distance) { best = i; distance = d; }
+                if (d <= distance)
+                {
+                    best = i;
+                    distance = d;
+                }
             }
             return best;
         }
 
-        // TÍNH TOÁN VỊ TRÍ NỐT NHỎ Ở GIỮA ĐỂ KIỂM TRA BẤM CHUỘT
         private Point GetHandleScreenPos(int segIndex)
         {
             var a = Model.BallGraphPoints[segIndex];
             var b = Model.BallGraphPoints[segIndex + 1];
             double tMid = (a.Time + b.Time) / 2.0;
 
-            double pMid;
-            if (a.Curve == BallGraphCurve.Wave)
-            {
-                // Đối với Wave: Vị trí nốt nhỏ nằm ở giữa biên độ sóng và dịch chuyển theo curvature
-                double centerP = (a.Position + b.Position) / 2.0;
-                pMid = Math.Clamp(centerP + a.Curvature * 0.25, 0.05, 0.95);
-            }
-            else
-            {
-                pMid = BallMotionGraph.Interpolate(a, b, 0.5);
-            }
+            double pMid = a.Curve == BallGraphCurve.Wave
+                ? Math.Clamp((a.Position + b.Position) / 2.0 + a.Curvature * 0.25, 0.05, 0.95)
+                : BallMotionGraph.Interpolate(a, b, 0.5);
 
             return Screen(tMid, pMid);
         }
@@ -389,7 +526,7 @@ public sealed class BallGraphEditor : UserControl
             for (int i = 0; i < Model.BallGraphPoints.Count - 1; i++)
             {
                 var hp = GetHandleScreenPos(i);
-                if ((hp - screen).LengthSquared <= 100) return i; // Bán kính nhận diện 10px
+                if ((hp - screen).LengthSquared <= 100) return i;
             }
             return -1;
         }
@@ -398,7 +535,8 @@ public sealed class BallGraphEditor : UserControl
         {
             if (Model == null) return;
             var points = Model.BallGraphPoints.ToList();
-            int index = t >= 1 ? points.Count - 1 : Math.Max(1, points.FindLastIndex(n => n.Time <= t) + 1);
+            int index = t >= 1.0 ? points.Count - 1 : Math.Max(1, points.FindLastIndex(n => n.Time <= t) + 1);
+
             points.Insert(index, new BallGraphPoint(t, p, BallGraphCurve.Linear));
             Selected = index;
             Model.ReplaceBallGraph(points);
@@ -428,6 +566,7 @@ public sealed class BallGraphEditor : UserControl
                 double t = Value(screen).X;
                 hit = Math.Clamp(Model.BallGraphPoints.ToList().FindLastIndex(p => p.Time <= t), 0, Model.BallGraphPoints.Count - 2);
             }
+
             Selected = hit;
             SelectionChanged?.Invoke();
             InvalidateVisual();
@@ -463,7 +602,7 @@ public sealed class BallGraphEditor : UserControl
                 item.Click += (_, _) =>
                 {
                     var p = Model.BallGraphPoints[Selected];
-                    Model.EditBallGraphPoint(Selected, p.Time, p.Position, mode.Key, 0); // Reset curvature về 0 khi đổi kiểu
+                    Model.EditBallGraphPoint(Selected, p.Time, p.Position, mode.Key, 0);
                     SelectionChanged?.Invoke();
                 };
                 menu.Items.Add(item);
@@ -485,7 +624,7 @@ public sealed class BallGraphEditor : UserControl
             if (Model == null) return;
             var plot = Plot;
 
-            // 1. Trục Y & Lưới ngang chuẩn Mapping Tools (0, 0.25, 0.5, 0.75, 1)
+            // 1. Horizontal grid lines (0, 0.25, 0.5, 0.75, 1.0)
             var gridPen = new Pen(new SolidColorBrush(Color.FromRgb(40, 44, 54)), 1);
             for (int i = 0; i <= 4; i++)
             {
@@ -495,7 +634,7 @@ public sealed class BallGraphEditor : UserControl
                 Text(dc, label, new Point(14, Screen(0, p).Y - 8), Brushes.Gray);
             }
 
-            // 2. Vạch nhịp osu! Beat Snap Ticks ở trục X
+            // 2. osu! beat snap divisor ticks on the X axis
             var tickPenWhite = new Pen(Brushes.White, 1.5);
             var tickPenRed = new Pen(new SolidColorBrush(Color.FromRgb(235, 75, 75)), 1);
             var tickPenBlue = new Pen(new SolidColorBrush(Color.FromRgb(60, 140, 255)), 1);
@@ -509,20 +648,21 @@ public sealed class BallGraphEditor : UserControl
                 dc.DrawLine(pen, ptBottom, new Point(ptBottom.X, ptBottom.Y + tickHeight));
             }
 
-            // 3. Dựng đường cong & đổ bóng dưới chân
+            // 3. Interpolated curve generation & fill geometry
             var points = Model.BallGraphPoints;
             var line = new List<Point> { Screen(points[0].Time, points[0].Position) };
 
             for (int i = 0; i < points.Count - 1; i++)
             {
-                var a = points[i]; var b = points[i + 1];
+                var a = points[i];
+                var b = points[i + 1];
+
                 if (a.Curve == BallGraphCurve.Hold)
                 {
                     line.Add(Screen(b.Time, a.Position));
                 }
                 else if (b.Time > a.Time)
                 {
-                    // Lấy mẫu dày (120 bước) để vẽ các đường sóng dày mượt mà không bị gãy góc
                     int steps = (a.Curve == BallGraphCurve.Wave) ? 180 : 64;
                     for (int j = 1; j <= steps; j++)
                     {
@@ -533,7 +673,6 @@ public sealed class BallGraphEditor : UserControl
                 line.Add(Screen(b.Time, b.Position));
             }
 
-            // Vùng phủ bóng Cyan mờ
             var fill = new StreamGeometry();
             using (var c = fill.Open())
             {
@@ -543,16 +682,18 @@ public sealed class BallGraphEditor : UserControl
             }
             dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(35, 0, 245, 220)), null, fill);
 
-            // Đường nét neon Cyan
             var curvePen = new Pen(new SolidColorBrush(Color.FromRgb(0, 235, 215)), 2);
-            for (int i = 1; i < line.Count; i++) dc.DrawLine(curvePen, line[i - 1], line[i]);
+            for (int i = 1; i < line.Count; i++)
+            {
+                dc.DrawLine(curvePen, line[i - 1], line[i]);
+            }
 
-            // 4. Thanh chạy thời gian Preview màu vàng
+            // 4. Live playback tracker
             double currentT = Model.GetPreviewProgress();
             dc.DrawLine(new Pen(Brushes.Gold, 1.2), Screen(currentT, 0), Screen(currentT, 1));
             dc.DrawEllipse(Brushes.Gold, null, Screen(currentT, Model.EvaluateBallProgress(currentT)), 4, 4);
 
-            // 5. VẼ NỐT NHỎ Ở GIỮA PHÂN ĐOẠN (TENSION HANDLE CHUẨN HÌNH 2 & 3)
+            // 5. Tension/curvature segment handles
             var handleFill = new SolidColorBrush(Color.FromRgb(0, 235, 215));
             var handleStroke = new Pen(Brushes.White, 1.2);
             for (int i = 0; i < points.Count - 1; i++)
@@ -561,7 +702,7 @@ public sealed class BallGraphEditor : UserControl
                 dc.DrawEllipse(handleFill, handleStroke, hp, 3.5, 3.5);
             }
 
-            // 6. Vẽ các mốc chính (Primary Anchors)
+            // 6. Primary anchor points
             for (int i = 0; i < points.Count; i++)
             {
                 var ptPos = Screen(points[i].Time, points[i].Position);
@@ -572,8 +713,15 @@ public sealed class BallGraphEditor : UserControl
             }
         }
 
-        private void Text(DrawingContext dc, string text, Point p, Brush brush) => dc.DrawText(new FormattedText(
-            text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 11, brush,
-            VisualTreeHelper.GetDpi(this).PixelsPerDip), p);
+        private void Text(DrawingContext dc, string text, Point p, Brush brush) =>
+            dc.DrawText(new FormattedText(
+                text,
+                CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Segoe UI"),
+                11,
+                brush,
+                VisualTreeHelper.GetDpi(this).PixelsPerDip),
+                p);
     }
 }

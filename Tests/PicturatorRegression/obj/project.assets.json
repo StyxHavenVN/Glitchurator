@@ -128,7 +128,7 @@
           }
         }
       },
-      "StandalonePicturator/1.0.0": {
+      "Glitchurator/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
@@ -137,10 +137,10 @@
           "Newtonsoft.Json": "13.0.4"
         },
         "compile": {
-          "bin/placeholder/StandalonePicturator.dll": {}
+          "bin/placeholder/Glitchurator.dll": {}
         },
         "runtime": {
-          "bin/placeholder/StandalonePicturator.dll": {}
+          "bin/placeholder/Glitchurator.dll": {}
         },
         "frameworkReferences": [
           "Microsoft.WindowsDesktop.App.WPF"
@@ -396,15 +396,15 @@
         "packageIcon.png"
       ]
     },
-    "StandalonePicturator/1.0.0": {
+    "Glitchurator/1.0.0": {
       "type": "project",
-      "path": "../../StandalonePicturator.csproj",
-      "msbuildProject": "../../StandalonePicturator.csproj"
+      "path": "../../Glitchurator.csproj",
+      "msbuildProject": "../../Glitchurator.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0-windows": [
-      "StandalonePicturator >= 1.0.0"
+      "Glitchurator >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -440,8 +440,8 @@
           "framework": "net10.0-windows7.0",
           "targetAlias": "net10.0-windows",
           "projectReferences": {
-            "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\StandalonePicturator.csproj": {
-              "projectPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\StandalonePicturator.csproj"
+            "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Glitchurator.csproj": {
+              "projectPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Glitchurator.csproj"
             }
           }
         }

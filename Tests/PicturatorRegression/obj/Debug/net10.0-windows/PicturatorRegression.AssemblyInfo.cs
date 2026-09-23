@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PicturatorRegression")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f8ba2976c5084e0eba742ce66513a0fd364778d2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a3e1ca531cad3ba67809dbadfc9c83c34cfaeade")]
 [assembly: System.Reflection.AssemblyProductAttribute("PicturatorRegression")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PicturatorRegression")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

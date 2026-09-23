@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace StandalonePicturator.Classes
 {
+    // Curve types used for segment easing between keypoints
     public enum BallGraphCurve
     {
         Linear = 0,
@@ -22,12 +23,13 @@ namespace StandalonePicturator.Classes
         DoubleCurve3 = 13
     }
 
+    // Motion timeline keyframe with normalized coordinates [0, 1]
     public record BallGraphPoint
     {
         public double Time { get; set; }
         public double Position { get; set; }
         public BallGraphCurve Curve { get; set; }
-        public double Curvature { get; set; } // Tham số độ cong / tần số sóng điều khiển bởi nốt nhỏ
+        public double Curvature { get; set; } // Shape/frequency modifier in range [-1, 1]
 
         public BallGraphPoint() : this(0, 0) { }
 
@@ -42,12 +44,14 @@ namespace StandalonePicturator.Classes
 
     public static class BallMotionGraph
     {
+        // Default linear 0 -> 1 motion path
         public static BallGraphPoint[] Default() => new[]
         {
             new BallGraphPoint(0, 0, BallGraphCurve.Linear),
             new BallGraphPoint(1, 1, BallGraphCurve.Linear)
         };
 
+        // Clamps, sorts by time, and ensures boundary points exist at Time = 0 and Time = 1
         public static BallGraphPoint[] Normalize(IEnumerable<BallGraphPoint> source)
         {
             var raw = (source ?? Default())
@@ -62,30 +66,31 @@ namespace StandalonePicturator.Classes
 
             if (raw.Count == 0) return Default();
 
+            // Anchor start point at Time = 0
             if (raw[0].Time > 0) raw.Insert(0, new BallGraphPoint(0, raw[0].Position, raw[0].Curve, raw[0].Curvature));
             else raw[0] = new BallGraphPoint(0, raw[0].Position, raw[0].Curve, raw[0].Curvature);
 
+            // Anchor end point at Time = 1
             if (raw[^1].Time < 1) raw.Add(new BallGraphPoint(1, raw[^1].Position, BallGraphCurve.Linear, 0));
             else raw[^1] = new BallGraphPoint(1, raw[^1].Position, raw[^1].Curve, raw[^1].Curvature);
 
             return raw.ToArray();
         }
 
-        // TÍNH TOÁN SỐ CHU KỲ SÓNG (WAVE CYCLES): Kéo xuống (c < 0) tăng sóng, kéo lên (c > 0) giảm sóng
+        // Maps curvature to oscillation frequency: negative values increase density (up to 36), positive values decrease it
         public static double GetWaveCycles(double curvature)
         {
             if (curvature <= 0)
             {
-                // Từ 0 đến -1: Tăng từ 6 chu kỳ (Hình 3) lên tới 36 chu kỳ dày đặc (Hình 2)
-                return 6.0 + (-curvature) * 30.0;
+                return 6.0 + (-curvature) * 30.0; // [-1, 0] -> [36, 6] cycles
             }
             else
             {
-                // Từ 0 đến 1: Giảm từ 6 chu kỳ xuống tối thiểu 1 chu kỳ
-                return Math.Max(1.0, 6.0 - curvature * 5.0);
+                return Math.Max(1.0, 6.0 - curvature * 5.0); // (0, 1] -> [6, 1] cycles
             }
         }
 
+        // Interpolates position between two points using local progress u in [0, 1]
         public static double Interpolate(BallGraphPoint a, BallGraphPoint b, double u)
         {
             u = Math.Clamp(u, 0, 1);
@@ -99,17 +104,17 @@ namespace StandalonePicturator.Classes
                 case BallGraphCurve.Hold:
                     return (u >= 1.0) ? p2 : p1;
 
-                // THUẬT TOÁN WAVE CHUẨN MAPPING TOOLS: BẢO TOÀN ĐỈNH/ĐÁY VÀ NỐI KHỚP ĐIỂM CUỐI
                 case BallGraphCurve.Wave:
                 {
                     int k = (int)Math.Round(GetWaveCycles(c));
-                    int m = 2 * k + 1; // Số nửa chu kỳ lẻ đảm bảo f(0) == p1 và f(1) == p2
+                    int m = 2 * k + 1; // Odd half-cycles guarantee matching start and end values
                     if (Math.Abs(diff) > 0.0001)
                     {
                         return p1 + diff * ((1.0 - Math.Cos(m * Math.PI * u)) / 2.0);
                     }
                     else
                     {
+                        // Oscillation around a static baseline
                         double amp = 0.25 * (1.0 + Math.Abs(c) * 0.5);
                         return Math.Clamp(p1 + amp * Math.Sin(2 * k * Math.PI * u), 0, 1);
                     }
@@ -122,6 +127,7 @@ namespace StandalonePicturator.Classes
                     return Math.Clamp(p1 + diff * u + 4.0 * bend * height * u * (1.0 - u), 0, 1);
                 }
 
+                // Power-based single easings (quadratic, cubic, quartic)
                 case BallGraphCurve.SingleCurve:
                 case BallGraphCurve.EaseIn:
                 case BallGraphCurve.EaseOut:
@@ -150,6 +156,7 @@ namespace StandalonePicturator.Classes
                     return p1 + diff * Math.Pow(u, p);
                 }
 
+                // Symmetric S-curves (EaseInOut)
                 case BallGraphCurve.DoubleCurve:
                 case BallGraphCurve.Smooth:
                 {
@@ -175,7 +182,7 @@ namespace StandalonePicturator.Classes
                     return p1 + diff * Math.Sin(u * Math.PI / 2.0);
                 }
 
-                default: // Linear
+                default: // Linear interpolation with optional curvature bias
                 {
                     if (Math.Abs(c) > 0.001)
                     {
@@ -188,11 +195,13 @@ namespace StandalonePicturator.Classes
             }
         }
 
+        // Finds the active keyframe segment and evaluates position at global normalized time [0, 1]
         public static double Evaluate(IReadOnlyList<BallGraphPoint> points, double time)
         {
             if (points == null || points.Count == 0) return Math.Clamp(time, 0, 1);
             time = Math.Clamp(time, 0, 1);
 
+            // Locate segment boundary
             int right = 0;
             while (right < points.Count && points[right].Time < time) right++;
 
@@ -203,6 +212,8 @@ namespace StandalonePicturator.Classes
             var b = points[right];
 
             if (b.Time <= a.Time) return b.Position;
+
+            // Normalized progress within the segment
             double u = (time - a.Time) / (b.Time - a.Time);
             return Math.Clamp(Interpolate(a, b, u), 0, 1);
         }

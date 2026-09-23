@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
-using Point = System.Windows.Point; // Chỉ định rõ Point thuộc System.Windows để tránh xung đột với System.Drawing
+using Point = System.Windows.Point; // Explicit alias to avoid ambiguity with System.Drawing.Point
 
 namespace StandalonePicturator.Classes
 {
+    // Represents a geometric cut region or eraser stroke applied to the image/field
     public class ShapeCut
     {
         public string Kind { get; set; }
@@ -27,6 +28,7 @@ namespace StandalonePicturator.Classes
         };
     }
 
+    // Configures scanline glitch effects, multi-tier slicing, and spatial erasure masks
     public class LayerEffects
     {
         public bool Layered { get; set; } = false;
@@ -58,6 +60,7 @@ namespace StandalonePicturator.Classes
             Cuts = this.Cuts.Select(c => c.Copy()).ToList()
         };
 
+        // Deterministic integer hash for procedural displacement
         private static int Hash(int seed, int a, int b = 0)
         {
             unchecked
@@ -68,6 +71,7 @@ namespace StandalonePicturator.Classes
             }
         }
 
+        // Applies scanline glitch and geometric cutouts to a GDI+ bitmap mask
         public void ApplyMask(Bitmap mask, double radius, bool layered, double amount, double frequency, int seed, double scaleFactor, int thickness = 3)
         {
             if (mask == null) return;
@@ -83,6 +87,7 @@ namespace StandalonePicturator.Classes
             }
         }
 
+        // Applies scanline glitch and geometric cutouts to a 2D scalar/distance field
         public void Apply(double[,] field, bool isGlitchOn, double amount, double frequency, int seed, double scaleFactor, int thickness = 3, double radius = 32)
         {
             if (field == null) return;
@@ -101,19 +106,26 @@ namespace StandalonePicturator.Classes
             }
         }
 
+        // Renders cutouts directly onto a bitmap using black fill
         private void ApplyCutsToBitmap(Bitmap bmp)
         {
             using (Graphics g = Graphics.FromImage(bmp))
             using (System.Drawing.Brush clearBrush = new System.Drawing.SolidBrush(System.Drawing.Color.Black))
             {
-                int w = bmp.Width, h = bmp.Height;
+                int w = bmp.Width;
+                int h = bmp.Height;
+
                 foreach (var cut in Cuts)
                 {
                     float cy = (float)(cut.Y * h);
                     float cutW = (float)cut.Width;
+
                     if (cut.Kind == "Polygon" && cut.Points?.Count >= 3)
                     {
-                        g.FillPolygon(clearBrush, cut.Points.Select(p => new System.Drawing.PointF((float)(p.X*w),(float)(p.Y*h))).ToArray());
+                        var points = cut.Points
+                            .Select(p => new System.Drawing.PointF((float)(p.X * w), (float)(p.Y * h)))
+                            .ToArray();
+                        g.FillPolygon(clearBrush, points);
                     }
                     else if (cut.Kind == "Band")
                     {
@@ -131,40 +143,77 @@ namespace StandalonePicturator.Classes
             }
         }
 
+        // Masks grid cells in the distance field by setting values outside threshold (1.2)
         private void ApplyCutsToField(double[,] field)
         {
-            int w = field.GetLength(0), h = field.GetLength(1);
+            int w = field.GetLength(0);
+            int h = field.GetLength(1);
+
             foreach (var cut in Cuts)
             {
                 int cy = (int)(cut.Y * h);
                 int cutW = (int)cut.Width;
+
+                // Polygon cut: tests inside points using bounding-box optimization
                 if (cut.Kind == "Polygon" && cut.Points?.Count >= 3)
                 {
-                    int x0=Math.Max(0,(int)Math.Floor(cut.Points.Min(p=>p.X)*w));
-                    int x1=Math.Min(w-1,(int)Math.Ceiling(cut.Points.Max(p=>p.X)*w));
-                    int y0=Math.Max(0,(int)Math.Floor(cut.Points.Min(p=>p.Y)*h));
-                    int y1=Math.Min(h-1,(int)Math.Ceiling(cut.Points.Max(p=>p.Y)*h));
-                    for(int y=y0;y<=y1;y++) for(int x=x0;x<=x1;x++)
-                        if(CutShapes.Contains(cut.Points,(x+.5)/w,(y+.5)/h)) field[x,y]=1.2;
+                    int x0 = Math.Max(0, (int)Math.Floor(cut.Points.Min(p => p.X) * w));
+                    int x1 = Math.Min(w - 1, (int)Math.Ceiling(cut.Points.Max(p => p.X) * w));
+                    int y0 = Math.Max(0, (int)Math.Floor(cut.Points.Min(p => p.Y) * h));
+                    int y1 = Math.Min(h - 1, (int)Math.Ceiling(cut.Points.Max(p => p.Y) * h));
+
+                    for (int y = y0; y <= y1; y++)
+                    {
+                        for (int x = x0; x <= x1; x++)
+                        {
+                            if (CutShapes.Contains(cut.Points, (x + 0.5) / w, (y + 0.5) / h))
+                            {
+                                field[x, y] = 1.2;
+                            }
+                        }
+                    }
                 }
+                // Horizontal band cut
                 else if (cut.Kind == "Band")
                 {
-                    for (int y = Math.Max(0, cy - cutW / 2); y <= Math.Min(h - 1, cy + cutW / 2); y++)
-                        for (int x = 0; x < w; x++) field[x, y] = 1.2;
+                    int minY = Math.Max(0, cy - cutW / 2);
+                    int maxY = Math.Min(h - 1, cy + cutW / 2);
+
+                    for (int y = minY; y <= maxY; y++)
+                    {
+                        for (int x = 0; x < w; x++)
+                        {
+                            field[x, y] = 1.2;
+                        }
+                    }
                 }
+                // Clears everything below horizontal line
                 else if (cut.Kind == "Below")
                 {
                     for (int y = Math.Max(0, cy); y < h; y++)
-                        for (int x = 0; x < w; x++) field[x, y] = 1.2;
+                    {
+                        for (int x = 0; x < w; x++)
+                        {
+                            field[x, y] = 1.2;
+                        }
+                    }
                 }
+                // Clears everything above horizontal line
                 else if (cut.Kind == "Above")
                 {
                     for (int y = 0; y <= Math.Min(h - 1, cy); y++)
-                        for (int x = 0; x < w; x++) field[x, y] = 1.2;
+                    {
+                        for (int x = 0; x < w; x++)
+                        {
+                            field[x, y] = 1.2;
+                        }
+                    }
                 }
+                // Freehand brush strokes using distance-to-point test
                 else if (cut.Kind == "Freehand" && cut.Points != null && cut.Points.Count > 1)
                 {
                     double radSq = (cut.Width / 2.0) * (cut.Width / 2.0);
+
                     for (int y = 0; y < h; y++)
                     {
                         for (int x = 0; x < w; x++)
@@ -173,6 +222,7 @@ namespace StandalonePicturator.Classes
                             {
                                 double px = cut.Points[p].X * w;
                                 double py = cut.Points[p].Y * h;
+
                                 if ((x - px) * (x - px) + (y - py) * (y - py) <= radSq)
                                 {
                                     field[x, y] = 1.2;
@@ -186,7 +236,3 @@ namespace StandalonePicturator.Classes
         }
     }
 }
-
-
-
-

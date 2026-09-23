@@ -4,12 +4,12 @@
     "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Tests\\PicturatorRegression\\PicturatorRegression.csproj": {}
   },
   "projects": {
-    "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\StandalonePicturator.csproj": {
+    "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Glitchurator.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\StandalonePicturator.csproj",
-        "projectName": "StandalonePicturator",
-        "projectPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\StandalonePicturator.csproj",
+        "projectUniqueName": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Glitchurator.csproj",
+        "projectName": "Glitchurator",
+        "projectPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Glitchurator.csproj",
         "packagesPath": "C:\\Users\\kdoan\\.nuget\\packages\\",
         "outputPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\obj\\",
         "projectStyle": "PackageReference",
@@ -407,8 +407,8 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\StandalonePicturator.csproj": {
-                "projectPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\StandalonePicturator.csproj"
+              "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Glitchurator.csproj": {
+                "projectPath": "E:\\MyProject\\SliderPicturator\\StandalonePicturator\\Glitchurator.csproj"
               }
             }
           }

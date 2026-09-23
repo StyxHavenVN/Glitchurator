@@ -1,39 +1,91 @@
 <UserControl x:Class="StandalonePicturator.View.SliderPicturator.SliderballView"
- xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
- xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:local="clr-namespace:StandalonePicturator.View.SliderPicturator">
- <Grid Background="#171C23" Margin="8">
-  <Grid.ColumnDefinitions><ColumnDefinition Width="270"/><ColumnDefinition Width="*"/><ColumnDefinition Width="230"/></Grid.ColumnDefinitions>
-  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
-   <TextBlock Text="SLIDERBALL" Foreground="Turquoise" FontSize="22" Margin="0,0,0,12"/>
-   <TextBlock Text="Hidden body • shared paths and graph" Foreground="White" TextWrapping="Wrap"/>
-   <Button Content="Load copied sliders" Command="{Binding ImportShapeCommand}" Margin="0,10"/>
-   <CheckBox Content="Enable sliderball" IsChecked="{Binding HasSliderBall}" Foreground="Gold"/>
-   <CheckBox Content="Multi-ball illusion" IsChecked="{Binding ChainAllVisibleBallPaths}" Foreground="Turquoise" Margin="0,8"/>
-   <TextBlock Text="Start time / duration (ms)" Foreground="White"/>
-   <UniformGrid Columns="2"><TextBox Text="{Binding TimeCode}"/><TextBox Text="{Binding Duration}"/></UniformGrid>
-   <TextBlock Text="Switch interval (0.1–32 ms)" Foreground="White" Margin="0,12,0,3"/>
-   <TextBox Text="{Binding BallSwitchMilliseconds, StringFormat=F1}"/>
-   <Slider Minimum="0.1" Maximum="32" Value="{Binding BallSwitchMilliseconds}" TickFrequency="0.1" IsSnapToTickEnabled="True"/>
-   <TextBlock Text="Below 1 ms is experimental. More samples increase anchors; osu! and FPS may skip switches. Start with 1–4 ms." Foreground="#FFD54F" TextWrapping="Wrap" Margin="0,5,0,12"/>
-   <TextBlock Text="Path origin X / Y" Foreground="White"/>
-   <UniformGrid Columns="2"><TextBox Text="{Binding SliderStartX, StringFormat=F2}"/><TextBox Text="{Binding SliderStartY, StringFormat=F2}"/></UniformGrid>
-   <TextBlock Text="Path scale" Foreground="White" Margin="0,8,0,0"/>
-   <Slider Minimum="0.2" Maximum="3" Value="{Binding SliderScale}"/>
-   <Button Content="GRAPH / segment estimate…" Click="Graph_Click" Margin="0,12"/>
-   <Button Content="Export hidden-body slider" Click="Export_Click" x:Name="ExportButton"/>
-   <TextBlock x:Name="Status" Foreground="Turquoise" TextWrapping="Wrap" Margin="0,8"/>
-   <TextBlock Text="No picture scanlines are generated. Body suppression targets osu! Stable's renderer; verify it in game. Native head/tail or follow-circle visuals depend on the skin." Foreground="LightGray" TextWrapping="Wrap" Margin="0,12"/>
-  </StackPanel></ScrollViewer>
-  <local:PicturatorPreview Grid.Column="1" BallOnly="True"/>
-  <DockPanel Grid.Column="2" Margin="8">
-   <StackPanel DockPanel.Dock="Top"><TextBlock Text="SHARED PATH LIBRARY" Foreground="Turquoise" FontWeight="Bold"/>
-    <TextBlock Text="Same layers as Slider Picturator. Show/Hide includes or excludes a route. Select a layer to edit its graph and placement." TextWrapping="Wrap" Foreground="LightGray" Margin="0,8"/>
-   </StackPanel>
-   <StackPanel DockPanel.Dock="Bottom"><TextBox Text="{Binding ActiveLibraryItem.Name}"/><Button Content="Remove selected" Click="Remove_Click"/><TextBlock Text="{Binding LibraryStatus}" Foreground="Gold" TextWrapping="Wrap"/></StackPanel>
-   <ListBox ItemsSource="{Binding LibraryItems}" SelectedItem="{Binding ActiveLibraryItem}" Background="#11171E" Foreground="White">
-    <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="3,6"><CheckBox Content="Show / Hide" IsChecked="{Binding IsVisible}" Foreground="Turquoise"/><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
-   </ListBox>
-  </DockPanel>
- </Grid>
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:StandalonePicturator.View.SliderPicturator">
+    
+    <Grid Background="#171C23" Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="270"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="230"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Column 0: Sliderball Motion Configuration Panel -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="8">
+                <TextBlock Text="SLIDERBALL" Foreground="Turquoise" FontSize="22" Margin="0,0,0,12"/>
+                <TextBlock Text="Hidden body • shared paths and graph" Foreground="White" TextWrapping="Wrap"/>
+
+                <Button Content="Load copied sliders" Command="{Binding ImportShapeCommand}" Margin="0,10"/>
+
+                <CheckBox Content="Enable sliderball" IsChecked="{Binding HasSliderBall}" Foreground="Gold"/>
+                <CheckBox Content="Multi-ball illusion" IsChecked="{Binding ChainAllVisibleBallPaths}" Foreground="Turquoise" Margin="0,8"/>
+
+                <!-- Timing and Duration Settings -->
+                <TextBlock Text="Start time / duration (ms)" Foreground="White"/>
+                <UniformGrid Columns="2" Margin="0,2,0,0">
+                    <TextBox Text="{Binding TimeCode}" Margin="0,0,2,0"/>
+                    <TextBox Text="{Binding Duration}" Margin="2,0,0,0"/>
+                </UniformGrid>
+
+                <!-- Switching Interval Sampling -->
+                <TextBlock Text="Switch interval (0.1–32 ms)" Foreground="White" Margin="0,12,0,3"/>
+                <TextBox Text="{Binding BallSwitchMilliseconds, StringFormat=F1}"/>
+                <Slider Minimum="0.1" Maximum="32" Value="{Binding BallSwitchMilliseconds}" 
+                        TickFrequency="0.1" IsSnapToTickEnabled="True" Margin="0,3,0,0"/>
+                <TextBlock Text="Below 1 ms is experimental. More samples increase anchors; osu! and FPS may skip switches. Start with 1–4 ms." 
+                           Foreground="#FFD54F" TextWrapping="Wrap" Margin="0,5,0,12"/>
+
+                <!-- Playfield Placement and Scaling -->
+                <TextBlock Text="Path origin X / Y" Foreground="White"/>
+                <UniformGrid Columns="2" Margin="0,2,0,0">
+                    <TextBox Text="{Binding SliderStartX, StringFormat=F2}" Margin="0,0,2,0"/>
+                    <TextBox Text="{Binding SliderStartY, StringFormat=F2}" Margin="2,0,0,0"/>
+                </UniformGrid>
+
+                <TextBlock Text="Path scale" Foreground="White" Margin="0,8,0,0"/>
+                <Slider Minimum="0.2" Maximum="3" Value="{Binding SliderScale}" Margin="0,3,0,0"/>
+
+                <!-- Motion Graph and Export Triggers -->
+                <Button Content="GRAPH / segment estimate…" Click="Graph_Click" Margin="0,12"/>
+                <Button x:Name="ExportButton" Content="Export hidden-body slider" Click="Export_Click"/>
+
+                <TextBlock x:Name="Status" Foreground="Turquoise" TextWrapping="Wrap" Margin="0,8"/>
+                <TextBlock Text="No picture scanlines are generated. Body suppression targets osu! Stable's renderer; verify it in game. Native head/tail or follow-circle visuals depend on the skin." 
+                           Foreground="LightGray" TextWrapping="Wrap" Margin="0,12"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Column 1: Interactive Preview Canvas (Ball Only Mode) -->
+        <local:PicturatorPreview Grid.Column="1" BallOnly="True"/>
+
+        <!-- Column 2: Shared Path Layer Library -->
+        <DockPanel Grid.Column="2" Margin="8">
+            <StackPanel DockPanel.Dock="Top">
+                <TextBlock Text="SHARED PATH LIBRARY" Foreground="Turquoise" FontWeight="Bold"/>
+                <TextBlock Text="Same layers as Slider Picturator. Show/Hide includes or excludes a route. Select a layer to edit its graph and placement." 
+                           TextWrapping="Wrap" Foreground="LightGray" Margin="0,8"/>
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                <TextBox Text="{Binding ActiveLibraryItem.Name}"/>
+                <Button Content="Remove selected" Click="Remove_Click" Margin="0,4,0,0"/>
+                <TextBlock Text="{Binding LibraryStatus}" Foreground="Gold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <ListBox ItemsSource="{Binding LibraryItems}" 
+                     SelectedItem="{Binding ActiveLibraryItem}" 
+                     Background="#11171E" Foreground="White" 
+                     Margin="0,4" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="3,6">
+                            <CheckBox Content="Show / Hide" IsChecked="{Binding IsVisible}" Foreground="Turquoise"/>
+                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Grid>
 </UserControl>

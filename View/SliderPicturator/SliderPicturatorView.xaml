@@ -1,151 +1,289 @@
-<UserControl x:Class="StandalonePicturator.View.SliderPicturator.SliderPicturatorView"
+﻿<UserControl x:Class="StandalonePicturator.View.SliderPicturator.SliderPicturatorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:StandalonePicturator.View.SliderPicturator">
+
     <UserControl.Resources>
-        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#DDE6EC"/><Setter Property="Margin" Value="0,3"/></Style>
-        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}"><Setter Property="Margin" Value="3"/></Style>
-        <Style TargetType="Slider"><Setter Property="Margin" Value="0,4"/></Style>
+        <!-- Style áp dụng đồng nhất cho các thành phần điều khiển giao diện -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#DDE6EC"/>
+            <Setter Property="Margin" Value="0,3"/>
+        </Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Margin" Value="3"/>
+        </Style>
+        <Style TargetType="Slider">
+            <Setter Property="Margin" Value="0,4"/>
+        </Style>
     </UserControl.Resources>
+
     <Grid Background="#242424" Margin="6">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <StackPanel Margin="0,0,0,10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Hàng 0: Thanh đường dẫn Beatmap và Ảnh nguồn -->
+            <RowDefinition Height="*"/>    <!-- Hàng 1: Không gian làm việc chính (Bảng cấu hình, Viewport, Library) -->
+            <RowDefinition Height="Auto"/> <!-- Hàng 2: Thanh công cụ xuất Slider (Inject/Save) -->
+        </Grid.RowDefinitions>
+
+        <!-- =========================================================================
+             HÀNG 0: QUẢN LÝ ĐƯỜNG DẪN TỆP NGUỒN (BEATMAP & ASSET ẢNH)
+             ========================================================================= -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
             <TextBlock Text="Slider Picturator" FontSize="24" FontWeight="Bold" Foreground="#80CBC4"/>
-            <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Choose map…" Command="{Binding SelectBeatmapCommand}"/>
+
+            <!-- Chọn file Beatmap .osu để inject trực tiếp kết quả vào map -->
+            <DockPanel Margin="0,2">
+                <Button DockPanel.Dock="Right" Content="Choose map…" Command="{Binding SelectBeatmapCommand}" Padding="8,2"/>
                 <TextBlock DockPanel.Dock="Left" Text="Beatmap .osu" Width="100" VerticalAlignment="Center"/>
                 <TextBox Text="{Binding BeatmapPath}"/>
             </DockPanel>
-            <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Import images…" Command="{Binding UploadFileCommand}"/>
+
+            <!-- Chọn ảnh Bitmap nguồn để rasterize thành các đường quét (Scanlines) -->
+            <DockPanel Margin="0,2">
+                <Button DockPanel.Dock="Right" Content="Import images…" Command="{Binding UploadFileCommand}" Padding="8,2"/>
                 <TextBlock DockPanel.Dock="Left" Text="Image source" Width="100" VerticalAlignment="Center"/>
                 <TextBox Text="{Binding PictureFile, Mode=OneWay}" IsReadOnly="True"/>
             </DockPanel>
         </StackPanel>
+
+        <!-- =========================================================================
+             HÀNG 1: KHU VỰC ĐIỀU KHIỂN & TRỰC QUAN HÓA CHÍNH (4 CỘT)
+             ========================================================================= -->
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="330"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="240"/></Grid.ColumnDefinitions>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="330"/> <!-- Cột 0: Bảng tham số thiết lập (Timing, Shape, Glitch, Ball) -->
+                <ColumnDefinition Width="10"/>  <!-- Cột 1: Khoảng đệm phân cách cột -->
+                <ColumnDefinition Width="*"/>   <!-- Cột 2: Khung Viewport Canvas tương tác (Interactive Preview) -->
+                <ColumnDefinition Width="240"/> <!-- Cột 3: Thư viện quản lý các tầng lớp (Layer & Shape Library) -->
+            </Grid.ColumnDefinitions>
+
+            <!-- =====================================================================
+                 CỘT 0: CẤU HÌNH THÔNG SỐ VÀ CƠ CHẾ SINH SLIDER
+                 ===================================================================== -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="0,0,10,0">
+
+                    <!-- 1. Cấu hình Timing và Độ phân giải trục dọc -->
                     <TextBlock Text="Start / duration (ms) / vertical resolution"/>
                     <UniformGrid Columns="3">
                         <TextBox Text="{Binding TimeCode}" ToolTip="Start time (ms)"/>
                         <TextBox Text="{Binding Duration}" ToolTip="Duration: 2–60000 ms"/>
                         <TextBox Text="{Binding YResolution}" ToolTip="Vertical resolution; a multiple of 60 is recommended"/>
                     </UniformGrid>
-                    <CheckBox Content="Match osu! resolution automatically" IsChecked="{Binding AutoOsuResolution}" Foreground="#80CBC4"/><TextBlock Text="Slider origin X / Y (moves with image)"/>
-                    <UniformGrid Columns="2"><TextBox Text="{Binding SliderStartX, StringFormat=F2}"/><TextBox Text="{Binding SliderStartY, StringFormat=F2}"/></UniformGrid>
+
+                    <!-- Khớp tỷ lệ quét theo màn hình osu! để tránh méo ảnh -->
+                    <CheckBox Content="Match osu! resolution automatically" 
+                              IsChecked="{Binding AutoOsuResolution}" 
+                              Foreground="#80CBC4" Margin="0,4"/>
+
+                    <!-- Tọa độ gốc điểm đầu của Slider trên Playfield (512x384) -->
+                    <TextBlock Text="Slider origin X / Y (moves with image)"/>
+                    <UniformGrid Columns="2">
+                        <TextBox Text="{Binding SliderStartX, StringFormat=F2}"/>
+                        <TextBox Text="{Binding SliderStartY, StringFormat=F2}"/>
+                    </UniformGrid>
+
+                    <!-- Tọa độ góc trên của ảnh (cho phép tọa độ âm để kéo tràn viền) -->
                     <TextBlock Text="Image origin X / Y (negative values allowed)"/>
-                    <UniformGrid Columns="2"><TextBox Text="{Binding ImageStartX, StringFormat=F2}"/><TextBox Text="{Binding ImageStartY, StringFormat=F2}"/></UniformGrid>
+                    <UniformGrid Columns="2">
+                        <TextBox Text="{Binding ImageStartX, StringFormat=F2}"/>
+                        <TextBox Text="{Binding ImageStartY, StringFormat=F2}"/>
+                    </UniformGrid>
+
+                    <!-- Mật độ dòng quét: Càng cao thì hình càng nét nhưng số điểm neo càng lớn -->
                     <TextBlock Text="{Binding Quality, StringFormat='Scan quality: {0:F0}'}"/>
                     <Slider Value="{Binding Quality}" Minimum="1" Maximum="101" TickFrequency="1" IsSnapToTickEnabled="True"/>
                     <TextBlock Text="{Binding SegmentCount, StringFormat='Selected layer scanlines: {0}'}" Foreground="#80CBC4"/>
+
+                    <!-- =============================================================
+                         CỤM 2: BIẾN ĐỔI SLIDER GỐC THÀNH SHAPE (PICTURATOR SHAPE)
+                         Mấu chốt để tạo slider đa vòng, đổi CS 5 thành nét mỏng CS 8
+                         ============================================================= -->
                     <Border Background="#1C1C1C" Padding="8" Margin="0,8" CornerRadius="5">
                         <StackPanel>
-                            <CheckBox Content="Native gradient body and border" IsChecked="{Binding NativeSliderShading}" Foreground="#80CBC4" Margin="0,0,0,5"/>
+                            <!-- Bật đổ bóng gradient tự nhiên của osu! Stable -->
+                            <CheckBox Content="Native gradient body and border" 
+                                      IsChecked="{Binding NativeSliderShading}" 
+                                      Foreground="#80CBC4" Margin="0,0,0,5"/>
+
                             <TextBlock Text="PICTURATOR SHAPE" FontWeight="Bold" Foreground="#80CBC4"/>
                             <TextBlock Text="{Binding ImportedSliderInfo}" TextWrapping="Wrap" FontSize="11"/>
-                            <WrapPanel>
+
+                            <!-- Nạp slider từ Clipboard (Ctrl+C trong osu!) hoặc xóa dữ liệu ảnh -->
+                            <WrapPanel Margin="0,4">
                                 <Button Content="Load copied sliders" Command="{Binding ImportShapeCommand}" Padding="8,5"/>
                                 <Button Content="Clear image" Command="{Binding RemoveCommand}" Background="#9F3333" Margin="6,0,0,0" Padding="8,5"/>
                             </WrapPanel>
+
+                            <!-- TargetCS: Quyết định bán kính vẽ (CS càng cao thì đường quét càng mỏng) -->
                             <TextBlock Text="{Binding TargetCS, StringFormat='Thickness — CS: {0:F1}'}"/>
                             <Slider Value="{Binding TargetCS}" Minimum="0" Maximum="10" SmallChange="0.1"/>
+
+                            <!-- Tỷ lệ phóng to/thu nhỏ toàn bộ ma trận điểm của slider -->
                             <TextBlock Text="{Binding SliderScale, StringFormat='Image scale: {0:F2}×'}"/>
                             <Slider Value="{Binding SliderScale}" Minimum="0.2" Maximum="3" SmallChange="0.05"/>
                         </StackPanel>
                     </Border>
+
+                    <!-- =============================================================
+                         CỤM 3: HIỆU ỨNG RÁCH HÌNH & XÉ ĐỈNH GLITCH (CRT / SCANLINE GLITCH)
+                         ============================================================= -->
                     <Border Background="#1C1C1C" Padding="8" Margin="0,0,0,8" CornerRadius="5">
                         <StackPanel>
-                            <!-- 1. ENABLE GLITCH THƯỜNG (RANDOM GỐC) -->
+                            <!-- Kích hoạt hiệu ứng gai Glitch cơ bản -->
                             <CheckBox Content="Enable glitch" IsChecked="{Binding IsGlitchOn}" Foreground="#00E5FF"/>
 
-                            <!-- 2. CÁC THÔNG SỐ GLITCH CHUNG (DÙNG CHO CẢ 2 CHẾ ĐỘ) -->
+                            <!-- Cấu hình góc xoay và biên độ dịch chuyển của các gai nhọn -->
                             <StackPanel IsEnabled="{Binding IsAnyGlitchEnabled}">
                                 <TextBlock Text="Rotate layered glitch"/>
-                                <ComboBox ItemsSource="{Binding GlitchRotationTargets}" SelectedItem="{Binding GlitchRotationTarget}" IsEnabled="{Binding LayeredGlitch}" Margin="0,4,0,8"/>
+                                <ComboBox ItemsSource="{Binding GlitchRotationTargets}" 
+                                          SelectedItem="{Binding GlitchRotationTarget}" 
+                                          IsEnabled="{Binding LayeredGlitch}" Margin="0,4,0,8"/>
+
                                 <TextBlock Text="{Binding GlitchAngle, StringFormat='Direction: {0:F0}°'}"/>
                                 <Slider Value="{Binding GlitchAngle}" Minimum="-180" Maximum="180" SmallChange="1" LargeChange="15"/>
+
                                 <TextBlock Text="{Binding GlitchAmount, StringFormat='Displacement: {0:F0} px'}"/>
                                 <Slider Value="{Binding GlitchAmount}" Minimum="0" Maximum="150"/>
+
                                 <TextBlock Text="{Binding GlitchFrequency, StringFormat='Overall density: {0:F0}%'}"/>
                                 <Slider Value="{Binding GlitchFrequency}" Minimum="0" Maximum="90"/>
+
                                 <TextBlock Text="{Binding GlitchThickness, StringFormat='Spike thickness: {0} px'}"/>
                                 <Slider Value="{Binding GlitchThickness}" Minimum="1" Maximum="8" IsSnapToTickEnabled="True" TickFrequency="1"/>
+
                                 <Button Content="Randomize glitch" Command="{Binding RandomizeGlitchSeedCommand}" Margin="0,4,0,6"/>
                             </StackPanel>
 
-                            <!-- 3. LAYERED SCANLINE GLITCH (CẤU TRÚC ĐỀU ĐẶN & TÙY CHỈNH TẦNG LỚP) -->
+                            <!-- Cơ chế Glitch theo từng tầng dòng quét đều đặn (Layered Scanlines) -->
                             <CheckBox Content="Layered scanline glitch" IsChecked="{Binding LayeredGlitch}" Foreground="#80CBC4" Margin="0,6,0,2"/>
                             <StackPanel IsEnabled="{Binding LayeredGlitch}" Margin="10,0,0,0">
                                 <CheckBox Content="Random rows (off = evenly aligned)" IsChecked="{Binding RandomGlitchRows}" Foreground="#80CBC4"/>
+
                                 <TextBlock Text="{Binding GlitchSpacing, StringFormat='Row spacing: {0:F1} osu!px'}"/>
                                 <Slider Value="{Binding GlitchSpacing}" Minimum="1" Maximum="30"/>
+
                                 <TextBlock Text="{Binding GlitchTiers, StringFormat='Tiers: {0}'}"/>
                                 <Slider Value="{Binding GlitchTiers}" Minimum="2" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True"/>
+
                                 <TextBlock Text="{Binding GlitchOuterDensity, StringFormat='Outer density: {0:F0}%'}"/>
                                 <Slider Value="{Binding GlitchOuterDensity}" Minimum="0" Maximum="100"/>
+
                                 <TextBlock Text="{Binding GlitchMiddleDensity, StringFormat='Middle density: {0:F0}%'}"/>
                                 <Slider Value="{Binding GlitchMiddleDensity}" Minimum="0" Maximum="100"/>
+
                                 <TextBlock Text="{Binding GlitchSolidCore, StringFormat='Solid inner width: {0:F0}%'}"/>
                                 <Slider Value="{Binding GlitchSolidCore}" Minimum="0" Maximum="95"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
+
+                    <!-- =============================================================
+                         CỤM 4: CHUYỂN ĐỘNG SLIDERBALL & ẢO ẢNH ĐA BÓNG (MULTI-BALL ILLUSION)
+                         ============================================================= -->
                     <Border Background="#1C1C1C" Padding="8" CornerRadius="5">
                         <StackPanel>
+                            <!-- Cho phép sliderball di chuyển bám theo khung xương hình ảnh -->
                             <CheckBox Content="Sliderball follows shape" IsChecked="{Binding HasSliderBall}" Foreground="#FFD54F"/>
-                            <CheckBox Content="Multi-ball illusion (visible paths)" IsChecked="{Binding ChainAllVisibleBallPaths}" Foreground="#80CBC4" Margin="0,4,0,2"/>
+
+                            <!-- Cơ chế nhảy bóng qua lại giữa các đường dẫn để tạo ảo giác nhiều bóng cùng chạy -->
+                            <CheckBox Content="Multi-ball illusion (visible paths)" 
+                                      IsChecked="{Binding ChainAllVisibleBallPaths}" 
+                                      Foreground="#80CBC4" Margin="0,4,0,2"/>
+
                             <TextBlock Text="{Binding BallSwitchMilliseconds, StringFormat='Switch path every {0} ms'}"/>
-                            <Slider Value="{Binding BallSwitchMilliseconds}" Minimum="1" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding ChainAllVisibleBallPaths}"/>
-                            <TextBlock Text="One real ball rapidly alternates between visible paths. All paths advance over the selected duration. FPS affects flicker; faster is not always smoother." TextWrapping="Wrap" FontSize="11"/>
-                            <TextBlock Text="Without a separate path, the ball follows the shape slider." TextWrapping="Wrap" FontSize="11"/>
+                            <Slider Value="{Binding BallSwitchMilliseconds}" Minimum="1" Maximum="32" 
+                                    TickFrequency="1" IsSnapToTickEnabled="True" 
+                                    IsEnabled="{Binding ChainAllVisibleBallPaths}"/>
+
+                            <TextBlock Text="One real ball rapidly alternates between visible paths. All paths advance over the selected duration. FPS affects flicker; faster is not always smoother." 
+                                       TextWrapping="Wrap" FontSize="11" Foreground="#9E9E9E"/>
+                            <TextBlock Text="Without a separate path, the ball follows the shape slider." 
+                                       TextWrapping="Wrap" FontSize="11" Foreground="#9E9E9E" Margin="0,2,0,5"/>
+
+                            <!-- Nạp đường bay riêng biệt cho Sliderball độc lập với thân vẽ -->
                             <Button Content="Import separate path (Ctrl+C)" Command="{Binding ImportBallPathCommand}"/>
                             <Button Content="Align ball with shape" Click="ResetBall_Click" Margin="0,5,0,0"/>
-                            <TextBlock Text="Independent ball offset X / Y"/>
-                            <UniformGrid Columns="2"><TextBox Text="{Binding BallOffsetX, StringFormat=F2}"/><TextBox Text="{Binding BallOffsetY, StringFormat=F2}"/></UniformGrid>
+
+                            <TextBlock Text="Independent ball offset X / Y" Margin="0,4,0,0"/>
+                            <UniformGrid Columns="2">
+                                <TextBox Text="{Binding BallOffsetX, StringFormat=F2}"/>
+                                <TextBox Text="{Binding BallOffsetY, StringFormat=F2}"/>
+                            </UniformGrid>
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- =====================================================================
+                 CỘT 2: KHUNG XEM TRƯỚC TRỰC QUAN (VIEWPORT PREVIEW CANVAS)
+                 ===================================================================== -->
             <Border Grid.Column="2" Background="#11171E" CornerRadius="6" BorderBrush="#3B535D" BorderThickness="1">
                 <DockPanel>
+                    <!-- Mở đồ thị vận tốc / biến thiên vị trí thời gian thực của Sliderball -->
                     <Button DockPanel.Dock="Top" Content="GRAPH — sliderball time / position…" Click="OpenGraph_Click" Margin="6" Padding="10,7"/>
+                    
+                    <!-- Khung đồ họa tự vẽ render trực tiếp trên không gian osu! 512x384 -->
                     <local:PicturatorPreview/>
                 </DockPanel>
             </Border>
+
+            <!-- =====================================================================
+                 CỘT 3: THƯ VIỆN LỚP HÌNH ẢNH & ĐƯỜNG DẪN DÙNG CHUNG (LAYER LIBRARY)
+                 ===================================================================== -->
             <Border Grid.Column="3" Margin="8,0,0,0" Background="#191F27" Padding="8" AllowDrop="True" Drop="Library_Drop">
                 <DockPanel>
+                    <!-- Các nút nạp thêm lớp layer vào phiên làm việc -->
                     <StackPanel DockPanel.Dock="Top">
                         <TextBlock Text="SLIDER &amp; IMAGE LIBRARY" Foreground="#80CBC4" FontWeight="Bold"/>
                         <TextBlock Text="{Binding LibraryItems.Count, StringFormat='Items: {0}'}"/>
                         <Button Content="Load copied sliders" Command="{Binding ImportShapeCommand}" Margin="0,3"/>
                         <Button Content="Import clipboard" Click="ImportClipboard_Click" Margin="0,3"/>
                         <Button Content="Import PNG / images…" Command="{Binding UploadFileCommand}" Margin="0,3"/>
-                        <TextBlock Text="Copy in osu! editor with Ctrl+C, then load here. The copied timestamp locates the slider in the saved .osu file." TextWrapping="Wrap" FontSize="11"/>
+                        <TextBlock Text="Copy in osu! editor with Ctrl+C, then load here. The copied timestamp locates the slider in the saved .osu file." 
+                                   TextWrapping="Wrap" FontSize="11" Foreground="#9E9E9E" Margin="0,4"/>
                     </StackPanel>
+
+                    <!-- Quản lý lớp đang được chọn (Đổi tên, Nhân bản, Xóa) -->
                     <StackPanel DockPanel.Dock="Bottom">
                         <TextBlock Text="Item name"/>
                         <TextBox Text="{Binding ActiveLibraryItem.Name, UpdateSourceTrigger=LostFocus}"/>
-                        <UniformGrid Columns="2">
+                        <UniformGrid Columns="2" Margin="0,2">
                             <Button Content="Duplicate" Click="DuplicateItem_Click" Margin="2"/>
                             <Button Content="Remove" Click="RemoveItem_Click" Margin="2"/>
                         </UniformGrid>
-                        <TextBlock Text="{Binding LibraryStatus}" TextWrapping="Wrap" FontSize="11" Foreground="#FFD54F"/>
-                        <TextBlock Text="Visible layers overlap into one image. Select a layer to move or resize it. Inject combines visible layers using the selected layer's timing and ball path." TextWrapping="Wrap" FontSize="11"/>
+                        <TextBlock Text="{Binding LibraryStatus}" TextWrapping="Wrap" FontSize="11" Foreground="#FFD54F" Margin="0,3"/>
+                        <TextBlock Text="Visible layers overlap into one image. Select a layer to move or resize it. Inject combines visible layers using the selected layer's timing and ball path." 
+                                   TextWrapping="Wrap" FontSize="11" Foreground="#9E9E9E"/>
                     </StackPanel>
-                    <ListBox ItemsSource="{Binding LibraryItems}" SelectedItem="{Binding ActiveLibraryItem, Mode=TwoWay}" Background="#11171E" Foreground="White" Margin="0,6" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemTemplate><DataTemplate>
-                            <StackPanel Margin="2,5"><CheckBox Content="Show / Hide" IsChecked="{Binding IsVisible, Mode=TwoWay}" Foreground="#80CBC4"/><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding Kind}" FontSize="10" Foreground="#80CBC4"/></StackPanel>
-                        </DataTemplate></ListBox.ItemTemplate>
+
+                    <!-- Danh sách các lớp (Hỗ trợ tích chọn Show/Hide để gộp nhiều slider lại thành 1) -->
+                    <ListBox ItemsSource="{Binding LibraryItems}" 
+                             SelectedItem="{Binding ActiveLibraryItem, Mode=TwoWay}" 
+                             Background="#11171E" Foreground="White" 
+                             Margin="0,6" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="2,5">
+                                    <CheckBox Content="Show / Hide" IsChecked="{Binding IsVisible, Mode=TwoWay}" Foreground="#80CBC4"/>
+                                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Kind}" FontSize="10" Foreground="#80CBC4"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
                     </ListBox>
                 </DockPanel>
             </Border>
         </Grid>
+
+        <!-- =========================================================================
+             HÀNG 2: THANH TÁC VỤ CUỐI (INJECT VÀO MAP / LƯU TIẾN TRÌNH)
+             ========================================================================= -->
         <DockPanel Grid.Row="2" Margin="0,10,0,0">
-            <Button DockPanel.Dock="Right" x:Name="InjectButton" Content="INJECT SLIDER" Click="Start_Click" Padding="20,9" FontWeight="Bold"/>
-            <Button DockPanel.Dock="Left" Content="Save session" Command="{Binding SaveProgressCommand}" HorizontalAlignment="Left"/>
-            <TextBlock Text="Inject combines visible layers into one slider, using the selected layer's timing and ball path." TextWrapping="Wrap" Margin="12,0" VerticalAlignment="Center"/>
+            <!-- Nút xuất trực tiếp dữ liệu slider đã dệt scanline vào file beatmap .osu -->
+            <Button DockPanel.Dock="Right" x:Name="InjectButton" Content="INJECT SLIDER" Click="Start_Click" Padding="20,9" FontWeight="Bold" Background="#512BD4"/>
+            <Button DockPanel.Dock="Left" Content="Save session" Command="{Binding SaveProgressCommand}" HorizontalAlignment="Left" Padding="12,5"/>
+            <TextBlock Text="Inject combines visible layers into one slider, using the selected layer's timing and ball path." 
+                       TextWrapping="Wrap" Margin="12,0" VerticalAlignment="Center" Foreground="#9E9E9E"/>
         </DockPanel>
     </Grid>
 </UserControl>
-
