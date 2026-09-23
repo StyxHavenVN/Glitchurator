@@ -1,6 +1,7 @@
 # Glitchurator
 
 **An extension of Mapping Tools' Slider Picturator and Sliderball functionality for osu!, developed by Styx (StyxHavenVN).**
+
 **I using AI for assistance!**
 
 Glitchurator lets you combine sliders and images into a single image, create glitch effects, adjust sliderball paths, and export the result to an `.osu` beatmap.
